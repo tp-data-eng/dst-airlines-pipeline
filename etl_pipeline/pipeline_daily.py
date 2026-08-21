@@ -43,7 +43,7 @@ engine = create_engine(f"sqlite:///{DB_PATH.as_posix()}")
 # =========================================================================
 # CONFIGURATION TOGGLES
 # =========================================================================
-VERBOSE_PIPELINE = True  # Toggle True to see detailed step-by-step pipeline telemetry
+VERBOSE_PIPELINE = False  # Toggle True to see detailed step-by-step pipeline telemetry
 
 
 # =========================================================================
