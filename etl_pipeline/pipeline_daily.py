@@ -1,17 +1,7 @@
+import sys
 from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine, text
-
-from api_utils import run_batch_ingestion
-from pipeline_utils import (
-    clean_flights,
-    clean_schedules,
-    build_fact_flight,
-    load_incremental_flights,
-    enrich_dim_aircraft,
-    enrich_dim_airlines,
-    enrich_dim_airports,
-)
 
 
 # =========================================================================
@@ -22,6 +12,25 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Define Project Root
 PROJECT_ROOT = BASE_DIR.parent
+
+# Inject the project root so it can find the 'utils' folder
+sys.path.append(str(PROJECT_ROOT))
+
+
+# =========================================================================
+# LOCAL IMPORTS
+# =========================================================================
+from utils.map_generator import generate_flight_map
+from api_utils import run_batch_ingestion
+from pipeline_utils import (
+    clean_flights,
+    clean_schedules,
+    build_fact_flight,
+    load_incremental_flights,
+    enrich_dim_aircraft,
+    enrich_dim_airlines,
+    enrich_dim_airports,
+)
 
 
 # =========================================================================
@@ -126,6 +135,28 @@ else:
 
         # Merge: Attach schedules to the live flights
         final_fact_flights = build_fact_flight(fact_flights, clean_scheds, verbose=VERBOSE_PIPELINE)
+
+        # ================================================
+        # Generate Flight Map
+        # ================================================
+        # Join coordinates with flight details
+        map_df = pd.merge(
+            dim_flight_position,
+            final_fact_flights,
+            on="flight_id",
+            how="inner"
+        )
+
+        # Add the reg_numbers
+        map_df = pd.merge(
+            map_df,
+            df_live_aircraft_patch[['aircraft_hex', 'reg_number']],
+            on="aircraft_hex",
+            how="left"
+        )
+
+        # Pass combined DF to the map
+        generate_flight_map(map_df, TARGET_AIRPORTS)
 
         # ================================================
         # Enrichment 1: Update the aircraft dimension with live patch
