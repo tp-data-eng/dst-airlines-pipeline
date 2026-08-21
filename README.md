@@ -1,13 +1,26 @@
 # DST Airlines Data Pipeline
 An automated ETL and data processing pipeline designed to ingest, clean and structure aviation datasets into a clean star schema relational database format using the AirLabs API.
 
-## Contributors & Architecture Ownership
-This repository houses the core Data Engineering ingestion pipeline and exploratory data analysis sandbox for our group project. 
+## Project Context
+*This repository originally began as a collaborative group project. I have since taken full ownership of this fork to independently expand the architecture, optimize the data pipeline, and build out the frontend visualization components.*
 
 * **Pipeline Architect & Core Developer:** Leoni Gilke
-  * Designed, implemented, and authored the entire codebase currently hosted in this repository, including the execution scripts (`pipeline_init.py`, `pipeline_monthly.py`, `pipeline_daily.py`), ETL pipeline utilities (`pipeline_utils.py`), API wrappers (`api_utils.py`), and configuration frameworks (`config.py`).
-* **Project Team:** Rustam U.
-  * Collaborating on project conceptualization, analytical reporting, and downstream dashboard development.
+  * **Independent Additions:** Interactive flight mapping, Plotly UI/UX design, CDN size optimization, and dynamic route categorization.
+  * **Core Architecture:** Designed, implemented, and authored the main ETL codebase (`pipeline_init.py`, `pipeline_monthly.py`, `pipeline_daily.py`), utilities (`pipeline_utils.py`), API wrappers (`api_utils.py`), and configuration frameworks.
+* **Original Project Team:** Rustam U.
+  * Collaborated on initial project conceptualization, analytical reporting, and downstream dashboard development.
+---
+
+## Live Interactive Dashboard
+As part of the independent expansion of this project, a high-performance interactive flight tracking map was built using Python and Plotly. 
+
+![Flight Map Preview](docs/map_preview.png)
+
+**Key Features of the Map:**
+* **Dynamic Route Categorization:** Automatically flags live telemetry data as Inbound or Outbound based on configured target hubs (EGLL, LFPG, LTFM).
+* **High-Contrast UI:** Utilizes neon complementary color pairs against a `carto-darkmatter` base map for maximum accessibility and readability.
+* **Performance Optimized:** Data is aggressively pre-filtered before rendering, and Plotly.js is loaded via CDN, reducing the final HTML export size from ~6MB to under 150KB for instantaneous browser loading.
+* **Polished Tooltips:** Uses custom HTML templates to clean raw ISO timestamps and replace null values with clean UI elements.
 
 ---
 
@@ -36,34 +49,6 @@ Our pipeline follows a structured architecture divided across distinct operation
 2. **Transformation (`pipeline_utils.py`):** Cleans data, standardizes naming conventions, backfills missing attributes, and structures information into Fact and Dimension tables.
 3. **Execution & Loading (`etl_pipeline/`):** Orchestrates database loading via a **3-script approach** separating initialization, monthly reference syncs, and daily incremental telemetry runs.
 
----
-
-## Repository Structure
-
-```text
-dst-airlines-pipeline/
-│
-├── database/
-│   └── airlines_warehouse.db   # The generated SQLite DB (ignored in git)
-├── database_schema/
-│   └── schema.sql              # Core DDL statements for tables, PKs, and FKs
-├── etl_pipeline/
-│   ├── pipeline_init.py        # One-time database initialization and historical seeding
-│   ├── pipeline_monthly.py     # Monthly static reference data synchronization script
-│   ├── pipeline_daily.py       # Routine daily incremental flight telemetry orchestrator
-│   ├── pipeline_utils.py       # Core ETL transformation and data cleaning utility functions
-│   ├── api_utils.py            # Core utilities for handling API connections and requests
-│   ├── config.py               # Centralized configuration parameters and environment keys
-│   └── main_pipeline.py        # (replaced through pipeline_init.py, pipeline_monthly.py and pipeline_daily.py)
-├── deliverables/
-│   └── Report_1.md             # Project report and initial analytical findings
-├── samples/
-│   └── flights_sample.json     # Sample raw JSON response payload from flight endpoints
-├── .gitignore                  # Git exclusion rules (caches, virtual environments, local configs)
-├── README.md                   # Project documentation and architectural overview
-└── ...
-   
-```
 
 ---
 
