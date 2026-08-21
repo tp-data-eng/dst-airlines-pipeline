@@ -77,25 +77,33 @@ else:
 
     # Pull live flights globally (unfiltered)
     df_raw_flights = run_batch_ingestion({'flights': {}}, verbose=VERBOSE_PIPELINE)
-
-    # Pull departure schedules, specifically for our target airport
-    df_raw_sched_dep = run_batch_ingestion({'schedules': {'dep_icao': 'EGLL'}}, verbose=VERBOSE_PIPELINE)
-
-    # Pull arrival schedules, specifically for our target airport
-    df_raw_sched_arr = run_batch_ingestion({'schedules': {'arr_icao': 'EGLL'}}, verbose=VERBOSE_PIPELINE)
-
-    # Extract individual DataFrames safely
     flights_df = df_raw_flights.get('flights')
-    sched_dep_df = df_raw_sched_dep.get('schedules')
-    sched_arr_df = df_raw_sched_arr.get('schedules')
 
-    # Combine both schedule results safely into a single DataFrame
+    # =========================================================================
+    # Dynamic Schedule Ingestion
+    TARGET_AIRPORTS = ['EGLL', 'LTFM', 'LFPG']
+
     sched_list = []
-    if sched_dep_df is not None and not sched_dep_df.empty:
-        sched_list.append(sched_dep_df)
-    if sched_arr_df is not None and not sched_arr_df.empty:
-        sched_list.append(sched_arr_df)
 
+    for airport in TARGET_AIRPORTS:
+        if VERBOSE_PIPELINE:
+            print(f"Fetching schedules for {airport}...")
+
+        # Pull schedules for the specific airport in the loop
+        df_raw_sched_dep = run_batch_ingestion({'schedules': {'dep_icao': airport}}, verbose=VERBOSE_PIPELINE)
+        df_raw_sched_arr = run_batch_ingestion({'schedules': {'arr_icao': airport}}, verbose=VERBOSE_PIPELINE)
+
+        # Extract DataFrames
+        sched_dep_df = df_raw_sched_dep.get('schedules')
+        sched_arr_df = df_raw_sched_arr.get('schedules')
+
+        # Append to master list if valid
+        if sched_dep_df is not None and not sched_dep_df.empty:
+            sched_list.append(sched_dep_df)
+        if sched_arr_df is not None and not sched_arr_df.empty:
+            sched_list.append(sched_arr_df)
+
+    # Combine all collected schedule results safely into a single DataFrame
     if sched_list:
         combined_schedules = pd.concat(sched_list, ignore_index=True).drop_duplicates()
     else:
