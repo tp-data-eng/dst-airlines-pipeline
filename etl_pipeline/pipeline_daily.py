@@ -20,7 +20,7 @@ sys.path.append(str(PROJECT_ROOT))
 # =========================================================================
 # LOCAL IMPORTS
 # =========================================================================
-from utils.map_generator import generate_flight_map
+from utils.map_generator_live_flights import generate_flight_map
 from api_utils import run_batch_ingestion
 from pipeline_utils import (
     clean_flights,
