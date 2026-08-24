@@ -1,4 +1,22 @@
 from pathlib import Path
+import sys
+
+# =========================================================================
+# PATH CONFIGURATION
+# =========================================================================
+# Anchor to the directory containing main_pipeline.py (etl_pipeline/)
+BASE_DIR = Path(__file__).resolve().parent
+
+# Define Project Root
+PROJECT_ROOT = BASE_DIR.parent
+
+# Add PROJECT_ROOT to Python's search path
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# =========================================================================
+# IMPORTS
+# =========================================================================
 import pandas as pd
 from sqlalchemy import create_engine, text
 
@@ -12,17 +30,7 @@ from pipeline_utils import (
     enrich_dim_airlines,
     enrich_dim_airports,
 )
-
-
-# =========================================================================
-# PATH CONFIGURATION
-# =========================================================================
-# Anchor to the directory containing main_pipeline.py (etl_pipeline/)
-BASE_DIR = Path(__file__).resolve().parent
-
-# Define Project Root
-PROJECT_ROOT = BASE_DIR.parent
-
+from utils.data_analysis import plot_reg_mapping_results
 
 # =========================================================================
 # DATABASE CONFIGURATION
@@ -143,6 +151,17 @@ else:
             # Append the full enriched DataFrame back into the empty table
             dim_aircraft_enriched.to_sql('dim_aircraft', engine, if_exists='append', index=False)
             print(f"Aircraft dimension updated successfully with {len(dim_aircraft_enriched)} total records.")
+
+            # ---------------------------------------------
+            # Generate Mapping Ratio Report
+            print("Generating registration mapping chart...")
+            report_dir = PROJECT_ROOT / "outputs"
+            report_dir.mkdir(exist_ok = True)
+
+            plot_reg_mapping_results(
+                dim_aircraft_enriched,
+                output_path = (report_dir / "registration_coverage.png").as_posix()
+            )
 
         except Exception as e:
             print(f"Skipping aircraft enrichment due to error: {e}")
