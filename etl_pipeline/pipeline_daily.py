@@ -160,14 +160,24 @@ else:
             print(f"Aircraft dimension updated successfully with {len(dim_aircraft_enriched)} total records.")
 
             # ---------------------------------------------
-            # Run Reg-Coverage Plot
-            viz.plot_registration_coverage(dim_aircraft_enriched)
+            try:
+                # Run Reg-Coverage Plot
+                viz.plot_registration_coverage(dim_aircraft_enriched)
+
+                # Run Top Aircraft Models Plot
+                dim_aircraft_df = pd.read_sql("SELECT model FROM dim_aircraft;", engine)
+                viz.plot_top_aircraft_models(dim_aircraft_df, top_n = 10)
+
+            except Exception as e:
+                print(f"Warning: Failed to generate visualization reports: {e}")
+
+            print("Visual reports saved to /outputs successfully!")
 
         except Exception as e:
             print(f"Skipping aircraft enrichment due to error: {e}")
 
         # ================================================
-        # Enrichment 2: Update the aircraft dimension with live patch
+        # Enrichment 2: Update the airline dimension with live patch
         try:
             print("Checking live flights to patch missing Airline data...")
             existing_airlines = pd.read_sql("SELECT * FROM dim_airline;", engine)
@@ -182,6 +192,21 @@ else:
             # Append the full enriched DataFrame
             dim_airline_enriched.to_sql('dim_airline', engine, if_exists='append', index=False)
             print("Airline dimension updated successfully.")
+
+            # ---------------------------------------------
+            try:
+                # Run Top Airlines Plot
+                df_active_airlines = pd.read_sql("""
+                                    SELECT a.airline_name
+                                    FROM fact_flight f
+                                    JOIN dim_airline a ON f.airline_icao = a.icao_code;
+                                """, engine)
+                viz.plot_top_airlines(df_active_airlines, airline_col = 'airline_name', top_n=10)
+
+                print("Visual reports saved to /outputs successfully!")
+
+            except Exception as e:
+                print(f"Warning: Failed to generate visualization reports: {e}")
 
         except Exception as e:
             print(f"Skipping aircraft enrichment due to error: {e}")

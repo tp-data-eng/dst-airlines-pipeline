@@ -104,3 +104,87 @@ class AirlineVisualizer:
         ax.set_ylabel("Aircraft Count")
 
         return self._save_fig(fig, filename)
+
+    def plot_top_airlines(self, df: pd.DataFrame, airline_col: str = 'airline_name', top_n: int = 10, filename: str = "top_airlines.png") -> Path:
+        """Plots a horizontal bar chart of the top N airlines by active flight volume."""
+        if df.empty or airline_col not in df.columns:
+            print(f"Warning: DataFrame empty or missing '{airline_col}'. Skipping plot.")
+            return None
+
+        # Aggregate counts & slice top N (reversed for top-to-bottom bar order)
+        counts = df[airline_col].value_counts().head(top_n).iloc[::-1]
+
+        fig, ax = plt.subplots(figsize = (10, 5))
+        bars = ax.barh(
+            counts.index,
+            counts.values,
+            color = PALETTE['primary'],
+            height = 0.6
+        )
+
+        ax.set_title(f"Top {top_n} Active Airlines by Flight Count", fontsize = 12, fontweight = 'bold')
+        ax.set_xlabel("Total Flights", fontsize = 10)
+        ax.set_xlim(0, max(counts.values) * 1.15)       # Add headroom for labels
+
+        # Bars with Counts
+        for bar in bars:
+            width = bar.get_width()
+            ax.annotate(
+                f'{width:,}',
+                xy = (width, bar.get_y() + bar.get_height() / 2),
+                xytext = (5, 0),
+                textcoords = 'offset points',
+                ha = 'left',
+                va = 'center',
+                fontweight = 'bold',
+                color = PALETTE['neutral']
+            )
+
+        plt.tight_layout()
+        return self._save_fig(fig, filename)
+
+    def plot_top_aircraft_models(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "top_aircraft_models.png") -> Path:
+        """Plots a horizontal bar chart of the most frequent aircraft models in the fleet."""
+        if df.empty or model_col not in df.columns:
+            print(f"Warning: DataFrame empty or missing '{model_col}'. Skipping plot.")
+            return None
+
+        # Clean fallback values and aggregate Top N
+        cleaned_series = df[model_col].fillna('UNKNOWN_MODEL')
+        counts = cleaned_series.value_counts().head(top_n).iloc[::-1]
+
+        fig, ax = plt.subplots(figsize = (10, 5))
+
+        # Set different Color if UNKNOWN_MODEL present in Top N
+        bar_colors = [
+            PALETTE['secondary'] if label == 'UNKNOWN_MODEL' else PALETTE['accent']
+            for label in counts.index
+        ]
+
+        bars = ax.barh(
+            counts.index,
+            counts.values,
+            color = bar_colors,
+            height = 0.6
+        )
+
+        ax.set_title(f"Top {top_n} Aircraft Models in Fleet", fontsize = 12, fontweight = 'bold')
+        ax.set_xlabel("Aircraft Count", fontsize = 10)
+        ax.set_xlim(0, max(counts.values) * 1.15)
+
+        for bar in bars:
+            width = bar.get_width()
+            ax.annotate(
+                f'{width:,}',
+                xy = (width, bar.get_y() + bar.get_height() / 2),
+                xytext = (5, 0),
+                textcoords = 'offset points',
+                ha = 'left',
+                va = 'center',
+                fontweight = 'bold',
+                color = PALETTE['neutral']
+            )
+
+        plt.tight_layout()
+        return self._save_fig(fig, filename)
+
