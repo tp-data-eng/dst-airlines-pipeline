@@ -30,7 +30,10 @@ from pipeline_utils import (
     enrich_dim_airlines,
     enrich_dim_airports,
 )
-from utils.data_analysis import plot_reg_mapping_results
+from utils.data_analysis import AirlineVisualizer
+
+# Initialize visualizer
+viz = AirlineVisualizer(output_dir=PROJECT_ROOT / "outputs")
 
 # =========================================================================
 # DATABASE CONFIGURATION
@@ -135,6 +138,10 @@ else:
         # Merge: Attach schedules to the live flights
         final_fact_flights = build_fact_flight(fact_flights, clean_scheds, verbose=VERBOSE_PIPELINE)
 
+        # ---------------------------------------------
+        # Run Flight Altitude Distribution Plot
+        viz.plot_flight_altitude_distribution(dim_flight_position)
+
         # ================================================
         # Enrichment 1: Update the aircraft dimension with live patch
         try:
@@ -153,15 +160,8 @@ else:
             print(f"Aircraft dimension updated successfully with {len(dim_aircraft_enriched)} total records.")
 
             # ---------------------------------------------
-            # Generate Mapping Ratio Report
-            print("Generating registration mapping chart...")
-            report_dir = PROJECT_ROOT / "outputs"
-            report_dir.mkdir(exist_ok = True)
-
-            plot_reg_mapping_results(
-                dim_aircraft_enriched,
-                output_path = (report_dir / "registration_coverage.png").as_posix()
-            )
+            # Run Reg-Coverage Plot
+            viz.plot_registration_coverage(dim_aircraft_enriched)
 
         except Exception as e:
             print(f"Skipping aircraft enrichment due to error: {e}")
