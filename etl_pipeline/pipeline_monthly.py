@@ -10,6 +10,7 @@ from pipeline_utils import (
     clean_airports_db,
     clean_airlines_db,
     clean_aircraft_db,
+    ingest_aircraft_paginated
 )
 
 
@@ -59,7 +60,6 @@ else:
         'airlinesDB': {},
         'citiesDB': {},
         'countriesDB': {},
-        'fleetsDB': {'airline_icao': 'BAW'},
     }
 
     print("Ingesting fresh reference datasets from AirLabs API...")
@@ -72,7 +72,7 @@ else:
     dim_cities = clean_cities_db(df['citiesDB'], verbose=VERBOSE_PIPELINE)
     dim_airports = clean_airports_db(df['airportsDB'], verbose=VERBOSE_PIPELINE)
     dim_airlines = clean_airlines_db(df['airlinesDB'], verbose=VERBOSE_PIPELINE)
-    dim_aircrafts = clean_aircraft_db(df['fleetsDB'], verbose=VERBOSE_PIPELINE)
+#    dim_aircrafts = clean_aircraft_db(df['fleetsDB'], verbose=VERBOSE_PIPELINE)
 
     # =========================================================================
     # Safeguard 1: dim_airport (Protect daily IATA patches)
@@ -135,26 +135,19 @@ else:
     dim_airlines_final = merged_airlines.drop(columns=['iata_code_existing', 'country_code_existing'], errors='ignore')
 
     # =========================================================================
-    # Safeguard 3: dim_aircraft (Protect live-streamed fleet from being wiped)
-    print("Merging monthly aircraft data safely...")
-    existing_aircrafts = pd.read_sql("SELECT * FROM dim_aircraft;", engine)
+    # Safeguard 3: dim_aircraft (Protect live hexes & update reference data)
+    print("Running paginated fleet ingestion...")
 
-    if not existing_aircrafts.empty:
-        # Update matching reference records with fresh API attributes
-        existing_set = existing_aircrafts.set_index('hex')
-        incoming_set = dim_aircrafts.set_index('hex')
-        existing_set.update(incoming_set)
-
-        # Find new reference rows from the monthly feed
-        new_ref_rows = incoming_set[~incoming_set.index.isin(existing_set.index)]
-
-        # Combine updated reference rows, live-streamed rows, and brand-new rows together
-        dim_aircrafts = pd.concat([existing_set, new_ref_rows]).reset_index()
-
-        # Protect registration numbers from being downgraded to 'UNKNOWN_REG' or null
-        print(f"-> Preserved live-streamed fleet. Total retained aircraft records: {len(dim_aircrafts)}")
-    else:
-        print(f"-> Initialized dim_aircraft with {len(dim_aircrafts)} reference records.")
+    try:
+        ingest_aircraft_paginated(
+            engine=engine,
+            endpoint_key='fleetsDB',
+            max_pages=10,
+            limit=50,
+            verbose=VERBOSE_PIPELINE
+        )
+    except Exception as e:
+        print(f"Notice: Paginated aircraft ingestion issue: {e}")
 
     # =========================================================================
     print("Clearing existing reference records from database...")
@@ -170,10 +163,5 @@ else:
     dim_cities.to_sql('dim_city', engine, if_exists='append', index=False)
     dim_airports_final.to_sql('dim_airport', engine, if_exists='append', index=False)
     dim_airlines_final.to_sql('dim_airline', engine, if_exists='append', index=False)
-
-    # use replace or clear-then-append safely
-    with engine.begin() as conn:
-        conn.execute(text("DELETE FROM dim_aircraft;"))
-    dim_aircrafts.to_sql('dim_aircraft', engine, if_exists='append', index=False)
 
     print("Monthly static databases checked and refreshed successfully!")

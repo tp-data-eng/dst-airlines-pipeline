@@ -1,5 +1,7 @@
 import pandas as pd
 from sqlalchemy import create_engine, text
+from api_utils import run_batch_ingestion
+import time
 
 # =========================================================================
 def clean_airlines_db(df, verbose=False):
@@ -141,6 +143,68 @@ def clean_aircraft_db(df, verbose=False):
         print(f"Unique aircraft records for DIM_AIRCRAFT: {len(dim_aircrafts)}")
 
     return dim_aircrafts
+
+# =========================================================================
+
+def ingest_aircraft_paginated(engine, endpoint_key = 'fleets', max_pages = 10, limit = 50, verbose = False):
+    """
+    Loops through the paginated AirLabs fleet endpoint, cleans each batch via clean_aircraft_db,
+    and updates dim_aircraft safely in SQLite.
+    """
+    cleaned_frames = []
+
+    print(f"Starting paginated AirLabs aircraft ingestion (up to {max_pages * limit} records)...")
+
+    for page in range(max_pages):
+        offset = page * limit
+        ingestion_plan = {
+            endpoint_key: {
+                'limit': limit,
+                'offset': offset
+            }
+        }
+
+        try:
+            # Fetch raw data
+            raw_data_dict = run_batch_ingestion(ingestion_plan, verbose = verbose)
+            raw_df = raw_data_dict.get(endpoint_key)
+
+            if raw_df is None or raw_df.empty:
+                print(f"Page {page + 1}: No records returned. Reached end of API pages.")
+                break
+
+            cleaned_df = clean_aircraft_db(raw_df, verbose = verbose)
+
+            if not cleaned_df.empty:
+                cleaned_frames.append(cleaned_df)
+                if verbose:
+                    print(f"Page {page + 1}/{max_pages}: Successfully processed {len(cleaned_df)} records.")
+
+            # Pause to prevent API rate limiting
+            time.sleep(0.2)
+
+        except Exception as e:
+            print(f"Warning: Failed fetching page {page + 1}: {e}")
+            break
+
+    if not cleaned_frames:
+        print("Attention: No valid aircraft records were processed.")
+        return
+
+    # Combine newly fetched and cleaned batches
+    new_fleet_df = pd.concat(cleaned_frames, ignore_index = True).drop_duplicates(subset=['hex'])
+
+    # Merge with existing database records, keep newest fetched values for each hex
+    existing_dim = pd.read_sql("SELECT * FROM dim_aircraft;", engine)
+    combined_dim = pd.concat([existing_aircraft if 'existing_aircraft' in locals() else existing_dim, new_fleet_df], ignore_index = True)
+    combined_dim = combined_dim.drop_duplicates(subset=['hex'], keep = 'last')
+
+    # Overwrite SQLite table safely
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM dim_aircraft;"))
+        combined_dim.to_sql('dim_aircraft', conn, if_exists = 'append', index = False)
+
+    print(f"Successfully updated dim_aircraft! Total fleet records now: {len(combined_dim)}")
 
 
 # =========================================================================
