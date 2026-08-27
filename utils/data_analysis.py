@@ -144,6 +144,70 @@ class AirlineVisualizer:
         plt.tight_layout()
         return self._save_fig(fig, filename)
 
+    def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png") -> Path:
+        """
+        Plots top active airlines per target airport hub from schedule data.
+        """
+        if df.empty or airline_col not in df.columns or airport_col not in df.columns:
+            print("Warning: Missing required columns for hub airline plot.")
+            return None
+
+        # Group by airport and airline to extract top N carriers per hub
+        grouped = (
+            df.groupby([airport_col, airline_col])
+            .size()
+            .reset_index(name='flight_count')
+        )
+
+        # Filtering: Rank airlines per hub and keep only the Top N for each airport
+        top_per_hub = (
+            grouped.sort_values([airport_col, 'flight_count'], ascending = [True, False])
+            .groupby(airport_col)
+            .head(top_n)
+        )
+
+        hubs = top_per_hub[airport_col].unique()
+
+        # Create Fig
+        fig, axes = plt.subplots(1, len(hubs), figsize = (5 * len(hubs), 5), sharey = False)
+
+        # Ensure 'axes' is an iterable list
+        if len(hubs) == 1:
+            axes = [axes]
+
+        # Plot: Loop through each hub subplot axis and render horizontal bar charts
+        for ax, hub in zip(axes, hubs):
+            # Filter dataset to current hub and reverse rows so highest values plot at top
+            hub_data = top_per_hub[top_per_hub[airport_col] == hub].iloc[::-1]
+
+            # Render horizontal bar chart
+            bars = ax.barh(hub_data[airline_col], hub_data['flight_count'], color = PALETTE['primary'], height = 0.6)
+
+            # Format plot axes, headers, and scale boundaries
+            ax.set_title(f"Top Airlines at {hub}", fontsize=11, fontweight='bold')
+            ax.set_xlabel("Scheduled Flights", fontsize=10)
+
+            # Add 15% headroom on X-axis max limit
+            ax.set_xlim(0, max(hub_data['flight_count']) * 1.15 if not hub_data.empty else 1)
+
+            # Bar Annotations: Add exact numerical values at the end of each bar
+            for bar in bars:
+                width = bar.get_width()
+                ax.annotate(
+                    f'{width:,}',
+                    xy = (width, bar.get_y() + bar.get_height() / 2),
+                    xytext = (4, 0),
+                    textcoords = 'offset points',
+                    ha = 'left',
+                    va = 'center',
+                    fontsize = 9,
+                    fontweight = 'bold',
+                    color = PALETTE['neutral']
+                )
+        plt.tight_layout()
+        return self._save_fig(fig, filename)
+            
+
     def plot_top_aircraft_models(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "top_aircraft_models.png") -> Path:
         """Plots a horizontal bar chart of the most frequent aircraft models in the fleet."""
         if df.empty or model_col not in df.columns:
@@ -259,9 +323,9 @@ class AirlineVisualizer:
                     color = PALETTE['neutral']
                 )
 
-            else:
-                ax2.text(0.5, 0.5, "No known models found yet", ha = 'center', va = 'center', transform = ax2.transAxes)
+        else:
+            ax2.text(0.5, 0.5, "No known models found yet", ha = 'center', va = 'center', transform = ax2.transAxes)
 
-            plt.tight_layout()
-            return self._save_fig(fig, filename)
+        plt.tight_layout()
+        return self._save_fig(fig, filename)
 
