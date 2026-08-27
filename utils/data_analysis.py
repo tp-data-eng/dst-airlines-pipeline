@@ -1,6 +1,7 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
+from wcwidth import width
 
 # ----------------------------------------------------------------------
 # GLOBAL STYLE CONFIGURATION
@@ -187,4 +188,80 @@ class AirlineVisualizer:
 
         plt.tight_layout()
         return self._save_fig(fig, filename)
+
+    def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png") -> Path:
+        """Generates a 2-panel visual auditing data enrichment health:
+        1. Known vs UNKNOWN coverage ratio
+        2. Top populated aircraft models (excluding UNKNOWN)
+        """
+        if df.empty or model_col not in df.columns:
+            print(f"Warning: DataFrame empty or missing '{model_col}'. Skipping audit plot.")
+            return None
+
+        # Standardize series
+        series = df[model_col].fillna('UNKNOWN_MODEL')
+
+        # Calculate overall metrics
+        total_count = len(series)
+        unknown_count = (series == 'UNKNOWN_MODEL').sum()
+        known_count = total_count - unknown_count
+
+        known_pct = (known_count / total_count * 100) if total_count > 0 else 0
+        unknown_pct = (unknown_count / total_count * 100) if total_count > 0 else 0
+
+        # Extract Top N known models
+        known_series = series[series != 'UNKNOWN_MODEL']
+        top_known = known_series.value_counts().head(top_n).iloc[::-1]
+
+        # Figure layout: Left (Coverage Ratio), Right (Top Known Models)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (14, 5), gridspec_kw = {'width_ratios': [1, 2]})
+
+        # Panel 1: Overall Data Quality Ratio
+        categories = ['Enriched\n(Known)', 'Unmapped\n(UNKNOWN)']
+        values = [known_count, unknown_count]
+        colors = [PALETTE['primary'], PALETTE['secondary']]
+
+        bars1 = ax1.bar(categories, values, color = colors, width = 0.5)
+        ax1.set_title(f"Fleet Data Quality Overview\n({known_pct:.1f}% Enriched)", fontsize = 11, fontweight = 'bold')
+        ax1.set_ylabel("Aircraft Hex Records", fontsize = 10)
+        ax1.set_ylim(0, max(values) * 1.15 if values else 1)
+
+        for bar in bars1:
+            yval = bar.get_height()
+            ax1.annotate(
+                f'{yval:,}',
+                xy = (bar.get_x() + bar.get_width() / 2, yval),
+                xytext = (0, 3),
+                textcoords = 'offset points',
+                ha = 'center',
+                va = 'bottom',
+                fontweight = 'bold',
+                color = PALETTE['neutral']
+            )
+
+        # Panel 2: Top Populated Aircraft Types
+        if not top_known.empty:
+            bars2 = ax2.barh(top_known.index, top_known.values, color = PALETTE['accent'], height = 0.6)
+            ax2.set_title(f"Top {len(top_known)} Resolved Aircraft Models", fontsize = 11, fontweight = 'bold')
+            ax2.set_xlabel("Airframe Count", fontsize = 10)
+            ax2.set_xlim(0, max(top_known.values) * 1.15)
+
+            for bar in bars2:
+                width = bar.get_width()
+                ax2.annotate(
+                    f'{width:,}',
+                    xy = (width, bar.get_y() + bar.get_height() / 2),
+                    xytext = (5, 0),
+                    textcoords = 'offset points',
+                    ha = 'left',
+                    va = 'center',
+                    fontweight = 'bold',
+                    color = PALETTE['neutral']
+                )
+
+            else:
+                ax2.text(0.5, 0.5, "No known models found yet", ha = 'center', va = 'center', transform = ax2.transAxes)
+
+            plt.tight_layout()
+            return self._save_fig(fig, filename)
 

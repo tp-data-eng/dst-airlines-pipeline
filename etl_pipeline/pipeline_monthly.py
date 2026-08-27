@@ -1,17 +1,5 @@
 from pathlib import Path
-import pandas as pd
-from sqlalchemy import create_engine, text
-
-# Import utils
-from api_utils import run_batch_ingestion
-from pipeline_utils import (
-    clean_countries_db,
-    clean_cities_db,
-    clean_airports_db,
-    clean_airlines_db,
-    clean_aircraft_db,
-    ingest_aircraft_paginated
-)
+import sys
 
 
 # =========================================================================
@@ -22,6 +10,30 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Define Project Root
 PROJECT_ROOT = BASE_DIR.parent
+
+# Add PROJECT_ROOT to Python's search path
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+
+# =========================================================================
+# IMPORTS
+# =========================================================================
+import pandas as pd
+from sqlalchemy import create_engine, text
+from api_utils import run_batch_ingestion
+from pipeline_utils import (
+    clean_countries_db,
+    clean_cities_db,
+    clean_airports_db,
+    clean_airlines_db,
+    clean_aircraft_db,
+    ingest_aircraft_paginated
+)
+from utils.data_analysis import AirlineVisualizer
+
+# Initialize visualizer
+viz = AirlineVisualizer(output_dir=PROJECT_ROOT / "outputs")
 
 
 # =========================================================================
@@ -148,6 +160,10 @@ else:
         )
     except Exception as e:
         print(f"Notice: Paginated aircraft ingestion issue: {e}")
+
+    # Run data health audit
+    dim_aircraft_df = pd.read_sql("SELECT * FROM dim_aircraft;", engine)
+    viz.plot_fleet_coverage_audit(dim_aircraft_df, top_n = 10)
 
     # =========================================================================
     print("Clearing existing reference records from database...")
