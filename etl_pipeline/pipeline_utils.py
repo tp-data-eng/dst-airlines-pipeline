@@ -148,8 +148,19 @@ def clean_aircraft_db(df, verbose=False):
 
 def ingest_aircraft_paginated(engine, endpoint_key = 'fleets', max_pages = 10, limit = 50, verbose = False):
     """
-    Loops through the paginated AirLabs fleet endpoint, cleans each batch via clean_aircraft_db,
-    and updates dim_aircraft safely in SQLite.
+    Loops through paginated AirLabs API fleet endpoints (default: 50 records/page)
+    to progressively enrich dim_aircraft without hitting strict rate limits.
+
+    Parameters:
+        engine (Engine): SQLAlchemy database engine connection.
+        endpoint_key (str): Endpoint key defined in config.py (default: 'fleetsDB').
+        max_pages (int): Maximum number of offset pages to pull per execution.
+        limit (int): Number of records per API page request (default: 50).
+        verbose (bool): Toggles detailed telemetry output.
+
+    Side Effects:
+        Performs a non-destructive merge into SQLite 'dim_aircraft', preserving
+        existing live flight hex codes while overwriting stale/unknown attributes.
     """
     cleaned_frames = []
 

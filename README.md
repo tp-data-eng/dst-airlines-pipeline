@@ -1,4 +1,4 @@
-# DST Airlines Data Pipeline
+# Airlines Data Pipeline
 An automated ETL and data processing pipeline designed to ingest, clean and structure aviation datasets into a clean star schema relational database format using the AirLabs API.
 
 ## Contributors & Architecture Ownership
@@ -38,37 +38,12 @@ Our pipeline follows a structured architecture divided across distinct operation
 
 ---
 
-## Repository Structure
-
-```text
-dst-airlines-pipeline/
-│
-├── database/
-│   └── airlines_warehouse.db   # The generated SQLite DB (ignored in git)
-├── database_schema/
-│   └── schema.sql              # Core DDL statements for tables, PKs, and FKs
-├── etl_pipeline/
-│   ├── pipeline_init.py        # One-time database initialization and historical seeding
-│   ├── pipeline_monthly.py     # Monthly static reference data synchronization script
-│   ├── pipeline_daily.py       # Routine daily incremental flight telemetry orchestrator
-│   ├── pipeline_utils.py       # Core ETL transformation and data cleaning utility functions
-│   ├── api_utils.py            # Core utilities for handling API connections and requests
-│   ├── config.py               # Centralized configuration parameters and environment keys
-│   └── main_pipeline.py        # (replaced through pipeline_init.py, pipeline_monthly.py and pipeline_daily.py)
-├── deliverables/
-│   └── Report_1.md             # Project report and initial analytical findings
-├── samples/
-│   └── flights_sample.json     # Sample raw JSON response payload from flight endpoints
-├── .gitignore                  # Git exclusion rules (caches, virtual environments, local configs)
-├── README.md                   # Project documentation and architectural overview
-└── ...
-   
-```
-
----
-
 ## Setup & Configuration
-1. Clone the repository to your local machine.
+1. Clone the repository to your local machine:
+    ```Bash
+   git clone https://github.com/tp-data-eng/dst-airlines-pipeline.git
+   cd dst-airlines-pipeline
+    ```
 2. Obtain an API key from [AirLabs](https://airlabs.co).
 3. Create a `.env` file in the project root directory and add your key:
    ```text
@@ -76,7 +51,7 @@ dst-airlines-pipeline/
    ```
 4. Install the required dependencies:
    ```Bash
-   pip install pandas SQLAlchemy python-dotenv requests
+   pip install -r requirements.txt
    ```
 5. Execute the Pipeline: Navigate to the project root directory and run the 3 scripts:
     ```Bash
@@ -140,12 +115,7 @@ All pipeline scripts and cleaning functions support an optional boolean `verbose
 ---
 
 ## Pipeline Architecture & Execution
-The `pipeline_utils.py` module contains core transformation, cleaning, and incremental loading logic:
->*outdated*
-
----
-
-## The 3-Script Execution Approach
+### The 3-Script Execution Approach
 To maintain clean separation of concerns between fast-changing operational telemetry and slow-changing global reference metadata, the pipeline is structured into three discrete scripts:
 
 1. **Database Initialization (`pipeline_init.py`)**
@@ -185,7 +155,28 @@ For production or scheduled server environments, the monthly and daily scripts c
 
 ---
 
+## Data Quality & Telemetry Visualizations
+
+To validate data enrichment success and audit warehouse health, the pipeline incorporates an automated visualization engine (`utils/data_analysis.py`). Outputs are stored as high-resolution figures directly in `/outputs`.
+
+### Aircraft & Telemetry Enrichment Strategies
+* **Paginated Fleet Resolution:** Implemented `ingest_aircraft_paginated()` to systematically request 50-record offset pages from the AirLabs `/fleets` API endpoint during monthly refreshes, resolving `UNKNOWN_MODEL` defaults.
+* **Non-Destructive Database Merges:** Refactored `pipeline_monthly.py` to merge incoming reference data with live daily telemetry hex codes without executing destructive `DELETE` operations on `dim_aircraft`.
+* **Telemetry Anomaly Detection:** Real-time altitude and position attributes are audited continuously to catch sensor drift or invalid ADS-B data streams.
+
+### Automated Visual Reporting (`AirlineVisualizer`)
+
+| Reporting Method | Output Artifact | Analytical Purpose | Trigger Script |
+| :--- | :--- | :--- | :--- |
+| `plot_registration_coverage()` | `registration_coverage.png` | Dual donut/bar chart tracking the percentage of mapped vs. `UNKNOWN_REG` tail numbers. | `pipeline_daily.py` |
+| `plot_fleet_coverage_audit()` | `fleet_coverage_audit.png` | Two-panel visual audit tracking total enriched-to-unknown model ratios and top resolved commercial airframe types. | `pipeline_monthly.py` |
+| `plot_top_aircraft_models()` | `top_aircraft_models.png` | Horizontal bar chart of frequent aircraft models, highlighting unmapped entities in a distinct warning color. | `pipeline_daily.py` |
+| `plot_top_airlines()` | `top_airlines.png` | Ranks top active carriers by flight volume across operational data feeds. | `pipeline_daily.py` |
+| `plot_flight_altitude_distribution()` | `flight_altitude_distribution.png` | Altitude histogram used for identifying operational flight levels and telemetry outliers. | `pipeline_daily.py` |
+
+---
+
 ## Future Enhancement
-* **Directional Movement Tracking (movement_type)**: While current analytical queries successfully determine flight directionality using origin and destination code matching relative to the primary hub (LHR), introducing an explicit boolean or categorical movement_type attribute in a future iteration would streamline real-time operational auditing. This would allow the ingestion layer to instantly flag turnaround times and gate-congestions metrics without secondary relational filtering."
+* **Directional Movement Tracking (movement_type)**: While current analytical queries successfully determine flight directionality using origin and destination code matching relative to the primary hub (LHR), introducing an explicit boolean or categorical movement_type attribute in a future iteration would streamline real-time operational auditing. This would allow the ingestion layer to instantly flag turnaround times and gate-congestions metrics without secondary relational filtering.
 
 ---
