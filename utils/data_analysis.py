@@ -29,6 +29,18 @@ class AirlineVisualizer:
         target_dir = self.base_output_dir / subfolder if subfolder else self.base_output_dir
         target_dir.mkdir(parents=True, exist_ok=True)
 
+        # Add Data Freshness Annotation (Bottom Right Footer)
+        freshness_label = f"Data as of: {data_as_of}" if data_as_of else f"Report Run: {self.timestamp}"
+        fig.text(
+            0.99, 0.01,
+            freshness_label,
+            ha='right',
+            va='bottom',
+            fontsize=8,
+            color=PALETTE['neutral'],
+            style='italic'
+        )
+
         path_obj = Path(filename)
 
         # Adds timestamp
@@ -214,18 +226,6 @@ class AirlineVisualizer:
                     fontweight = 'bold',
                     color = PALETTE['neutral']
                 )
-
-            # Add Data Freshness Annotation (Bottom Right Footer)
-            freshness_label = f"Data as of: {data_as_of}" if data_as_of else f"Generated: {self.timestamp}"
-            fig.text(
-                0.99, 0.01,
-                freshness_label,
-                ha = 'right',
-                va = 'bottom',
-                fontsize = 8,
-                color = PALETTE['neutral'],
-                style = 'italic'
-            )
 
         plt.tight_layout()
         return self._save_fig(fig, filename, subfolder="airlines")
