@@ -18,19 +18,22 @@ PALETTE = {
 class AirlineVisualizer:
     """Reusable plotter for airline data engineering reports."""
 
-    def __init__(self, output_dir: Path | str = "reports"):
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents = True, exist_ok = True)
+    def __init__(self, output_dir: Path | str = "outputs"):
+        self.base_output_dir = Path(output_dir)
         # Generate  timestamp string at class initialization
         self.timestamp = datetime.now().strftime("%Y%m%d-%H%M")
 
-    def _save_fig(self, fig: plt.Figure, filename: str) -> Path:
-        """Helper to safely save and close figures to prevent memory leaks."""
+    def _save_fig(self, fig: plt.Figure, filename: str, subfolder: str = "") -> Path:
+        """Helper to safely save figures into target subfolders with timestamps
+         and close figures to prevent memory leaks."""
+        target_dir = self.base_output_dir / subfolder if subfolder else self.base_output_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
         path_obj = Path(filename)
 
         # Adds timestamp
         timestamped_filename = f"{path_obj.stem}_{self.timestamp}{path_obj.suffix}"
-        filepath = self.output_dir / timestamped_filename
+        filepath = target_dir / timestamped_filename
 
         fig.savefig(filepath, dpi = 300, bbox_inches = 'tight')
         plt.close(fig)
@@ -98,7 +101,7 @@ class AirlineVisualizer:
                 fontweight='bold'
             )
 
-        return self._save_fig(fig, filename)
+        return self._save_fig(fig, filename, subfolder="coverage")
 
     def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png") -> Path:
         """Histogram of flight altitudes to spot telemetry outliers."""
@@ -111,7 +114,7 @@ class AirlineVisualizer:
         ax.set_xlabel("Altitude (ft)")
         ax.set_ylabel("Aircraft Count")
 
-        return self._save_fig(fig, filename)
+        return self._save_fig(fig, filename, subfolder="fleet")
 
     def plot_top_airlines(self, df: pd.DataFrame, airline_col: str = 'airline_name', top_n: int = 10, filename: str = "top_airlines.png") -> Path:
         """Plots a horizontal bar chart of the top N airlines by active flight volume."""
@@ -149,9 +152,9 @@ class AirlineVisualizer:
             )
 
         plt.tight_layout()
-        return self._save_fig(fig, filename)
+        return self._save_fig(fig, filename, subfolder="airlines")
 
-    def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png") -> Path:
+    def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png", data_as_of: str = None) -> Path:
         """
         Plots top active airlines per target airport hub from schedule data.
         """
@@ -211,8 +214,21 @@ class AirlineVisualizer:
                     fontweight = 'bold',
                     color = PALETTE['neutral']
                 )
+
+            # Add Data Freshness Annotation (Bottom Right Footer)
+            freshness_label = f"Data as of: {data_as_of}" if data_as_of else f"Generated: {self.timestamp}"
+            fig.text(
+                0.99, 0.01,
+                freshness_label,
+                ha = 'right',
+                va = 'bottom',
+                fontsize = 8,
+                color = PALETTE['neutral'],
+                style = 'italic'
+            )
+
         plt.tight_layout()
-        return self._save_fig(fig, filename)
+        return self._save_fig(fig, filename, subfolder="airlines")
             
 
     def plot_top_aircraft_models(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "top_aircraft_models.png") -> Path:
@@ -258,7 +274,7 @@ class AirlineVisualizer:
             )
 
         plt.tight_layout()
-        return self._save_fig(fig, filename)
+        return self._save_fig(fig, filename, subfolder="fleet")
 
     def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png") -> Path:
         """Generates a 2-panel visual auditing data enrichment health:
@@ -334,5 +350,5 @@ class AirlineVisualizer:
             ax2.text(0.5, 0.5, "No known models found yet", ha = 'center', va = 'center', transform = ax2.transAxes)
 
         plt.tight_layout()
-        return self._save_fig(fig, filename)
+        return self._save_fig(fig, filename, subfolder="coverage")
 
