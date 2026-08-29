@@ -1,7 +1,7 @@
 from pathlib import Path
+from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
-from wcwidth import width
 
 # ----------------------------------------------------------------------
 # GLOBAL STYLE CONFIGURATION
@@ -21,10 +21,17 @@ class AirlineVisualizer:
     def __init__(self, output_dir: Path | str = "reports"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents = True, exist_ok = True)
+        # Generate  timestamp string at class initialization
+        self.timestamp = datetime.now().strftime("%Y%m%d-%H%M")
 
     def _save_fig(self, fig: plt.Figure, filename: str) -> Path:
         """Helper to safely save and close figures to prevent memory leaks."""
-        filepath = self.output_dir / filename
+        path_obj = Path(filename)
+
+        # Adds timestamp
+        timestamped_filename = f"{path_obj.stem}_{self.timestamp}{path_obj.suffix}"
+        filepath = self.output_dir / timestamped_filename
+
         fig.savefig(filepath, dpi = 300, bbox_inches = 'tight')
         plt.close(fig)
         return filepath
