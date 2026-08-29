@@ -23,17 +23,20 @@ class AirlineVisualizer:
         # Generate  timestamp string at class initialization
         self.timestamp = datetime.now().strftime("%Y%m%d-%H%M")
 
-    def _save_fig(self, fig: plt.Figure, filename: str, subfolder: str = "") -> Path:
+    def _save_fig(self, fig: plt.Figure, filename: str, subfolder: str = "", data_as_of: str | None = None) -> Path:
         """Helper to safely save figures into target subfolders with timestamps
          and close figures to prevent memory leaks."""
         target_dir = self.base_output_dir / subfolder if subfolder else self.base_output_dir
         target_dir.mkdir(parents=True, exist_ok=True)
 
         # Add Data Freshness Annotation (Bottom Right Footer)
-        freshness_label = f"Data as of: {data_as_of}" if data_as_of else f"Report Run: {self.timestamp}"
+        render_time = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+        freshness_label = f"Data as of: {data_as_of}" if data_as_of else "Data As Of: Unknown"
+        footer_text = f"{freshness_label} | Rendered: {render_time}"
+
         fig.text(
             0.99, 0.01,
-            freshness_label,
+            footer_text,
             ha='right',
             va='bottom',
             fontsize=8,
@@ -51,7 +54,7 @@ class AirlineVisualizer:
         plt.close(fig)
         return filepath
 
-    def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png") -> Path:
+    def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
         if df.empty or 'reg_number' not in df.columns:
             raise ValueError("DataFrame must contain 'reg_number' column.")
@@ -113,7 +116,7 @@ class AirlineVisualizer:
                 fontweight='bold'
             )
 
-        return self._save_fig(fig, filename, subfolder="coverage")
+        return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
     def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png") -> Path:
         """Histogram of flight altitudes to spot telemetry outliers."""
@@ -128,7 +131,7 @@ class AirlineVisualizer:
 
         return self._save_fig(fig, filename, subfolder="fleet")
 
-    def plot_top_airlines(self, df: pd.DataFrame, airline_col: str = 'airline_name', top_n: int = 10, filename: str = "top_airlines.png") -> Path:
+    def plot_top_airlines(self, df: pd.DataFrame, airline_col: str = 'airline_name', top_n: int = 10, filename: str = "top_airlines.png", data_as_of: str | None = None) -> Path | None:
         """Plots a horizontal bar chart of the top N airlines by active flight volume."""
         if df.empty or airline_col not in df.columns:
             print(f"Warning: DataFrame empty or missing '{airline_col}'. Skipping plot.")
@@ -164,7 +167,7 @@ class AirlineVisualizer:
             )
 
         plt.tight_layout()
-        return self._save_fig(fig, filename, subfolder="airlines")
+        return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
 
     def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png", data_as_of: str = None) -> Path:
         """
@@ -228,10 +231,10 @@ class AirlineVisualizer:
                 )
 
         plt.tight_layout()
-        return self._save_fig(fig, filename, subfolder="airlines")
+        return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
             
 
-    def plot_top_aircraft_models(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "top_aircraft_models.png") -> Path:
+    def plot_top_aircraft_models(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "top_aircraft_models.png", data_as_of: str | None = None) -> Path:
         """Plots a horizontal bar chart of the most frequent aircraft models in the fleet."""
         if df.empty or model_col not in df.columns:
             print(f"Warning: DataFrame empty or missing '{model_col}'. Skipping plot.")
@@ -274,9 +277,9 @@ class AirlineVisualizer:
             )
 
         plt.tight_layout()
-        return self._save_fig(fig, filename, subfolder="fleet")
+        return self._save_fig(fig, filename, subfolder="fleet", data_as_of=data_as_of)
 
-    def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png") -> Path:
+    def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png", data_as_of: str | None = None) -> Path:
         """Generates a 2-panel visual auditing data enrichment health:
         1. Known vs UNKNOWN coverage ratio
         2. Top populated aircraft models (excluding UNKNOWN)
@@ -350,5 +353,5 @@ class AirlineVisualizer:
             ax2.text(0.5, 0.5, "No known models found yet", ha = 'center', va = 'center', transform = ax2.transAxes)
 
         plt.tight_layout()
-        return self._save_fig(fig, filename, subfolder="coverage")
+        return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
