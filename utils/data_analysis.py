@@ -232,52 +232,7 @@ class AirlineVisualizer:
 
         plt.tight_layout()
         return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
-            
 
-    def plot_top_aircraft_models(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "top_aircraft_models.png", data_as_of: str | None = None) -> Path:
-        """Plots a horizontal bar chart of the most frequent aircraft models in the fleet."""
-        if df.empty or model_col not in df.columns:
-            print(f"Warning: DataFrame empty or missing '{model_col}'. Skipping plot.")
-            return None
-
-        # Clean fallback values and aggregate Top N
-        cleaned_series = df[model_col].fillna('UNKNOWN_MODEL')
-        counts = cleaned_series.value_counts().head(top_n).iloc[::-1]
-
-        fig, ax = plt.subplots(figsize = (10, 5))
-
-        # Set different Color if UNKNOWN_MODEL present in Top N
-        bar_colors = [
-            PALETTE['secondary'] if label == 'UNKNOWN_MODEL' else PALETTE['accent']
-            for label in counts.index
-        ]
-
-        bars = ax.barh(
-            counts.index,
-            counts.values,
-            color = bar_colors,
-            height = 0.6
-        )
-
-        ax.set_title(f"Top {top_n} Aircraft Models in Fleet", fontsize = 12, fontweight = 'bold')
-        ax.set_xlabel("Aircraft Count", fontsize = 10)
-        ax.set_xlim(0, max(counts.values) * 1.15)
-
-        for bar in bars:
-            width = bar.get_width()
-            ax.annotate(
-                f'{width:,}',
-                xy = (width, bar.get_y() + bar.get_height() / 2),
-                xytext = (5, 0),
-                textcoords = 'offset points',
-                ha = 'left',
-                va = 'center',
-                fontweight = 'bold',
-                color = PALETTE['neutral']
-            )
-
-        plt.tight_layout()
-        return self._save_fig(fig, filename, subfolder="fleet", data_as_of=data_as_of)
 
     def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png", data_as_of: str | None = None) -> Path:
         """Generates a 2-panel visual auditing data enrichment health:

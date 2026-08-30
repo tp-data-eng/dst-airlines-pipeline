@@ -139,13 +139,6 @@ def main():
             )
             print(f" -> Registration Coverage Report saved: {path_reg}")
 
-            path_models = viz.plot_top_aircraft_models(
-                df_aircraft,
-                top_n=10,
-                data_as_of=data_freshness_str
-            )
-            print(f" -> Top Aircraft Models Report saved: {path_models}")
-
             path_audit = viz.plot_fleet_coverage_audit(
                 df_aircraft,
                 top_n=10,
