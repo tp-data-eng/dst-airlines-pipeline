@@ -60,6 +60,11 @@ class AirlineVisualizer:
         """Helper to map raw database registration values to clean display labels."""
         return 'Unmapped' if val == 'UNKNOWN_REG' else 'Mapped'
 
+    @staticmethod
+    def _format_eur_number(val: float | int) -> str:
+        """Formats numbers using European style (1,000 -> 1.000)."""
+        return f"{int(val):,}".replace(",", ".")
+
     def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
         if df.empty or 'reg_number' not in df.columns:
@@ -97,11 +102,14 @@ class AirlineVisualizer:
             status_counts.index,
             status_counts.values,
             color=colors,
-            width=0.5
+            width=0.4
         )
         ax2.set_ylabel('Total Aircraft Records', fontsize=10)
         ax2.set_title('Mapped vs. Unmapped Record Counts', fontsize=12, fontweight='bold')
         ax2.set_ylim(0, max(status_counts.values) * 1.15)  # Add headroom for labels
+
+        # Add padding to x-axis
+        ax2.set_xlim(-0.6, 1.6)
 
         # Modernize chart (Remove Top and Right Spines)
         ax2.spines['top'].set_visible(False)
@@ -111,7 +119,7 @@ class AirlineVisualizer:
             height = bar.get_height()
             pct = (height / total) * 100
             ax2.annotate(
-                f'{height:,}\n({pct:.1f}%)',
+                f'{self._format_eur_number(height)}\n({pct:.1f}%)',
                 xy=(bar.get_x() + bar.get_width() / 2, height),
                 xytext=(0, 5),
                 textcoords='offset points',
