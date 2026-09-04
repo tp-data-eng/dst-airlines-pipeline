@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import pandas as pd
 from sqlalchemy import create_engine, text
 
@@ -67,21 +69,32 @@ QUERY_AIRCRAFT_FLEET = """
 # HELPER FUNCTIONS
 # =========================================================================
 def get_warehouse_data_freshness(conn) -> str:
-    """Extracts and formats exact YYYY-MM-DD HH:MM timestamp from warehouse."""
+    """Extracts UTC timestamp from warehouse and converts it to Berlin local time."""
     try:
         row = conn.execute(QUERY_MAX_TELEMETRY).fetchone()
         if not row or not row[0]:
             return "N/A"
 
-        d_str = str(row[0])
-        formatted_date = f"{d_str[:4]}-{d_str[4:6]}-{d_str[6:]}"
+        d_str = str(row[0])     # YYYYMMDD
 
         # Format time_key integer (HHMM -> HH:MM)
         time_key = row[1] if row[1] is not None else 0
         t_str = f"{time_key:04d}"
-        formatted_time = f"{t_str[:2]}:{t_str[2:]}"
 
-        return f"{formatted_date} {formatted_time}"
+        # Combine into a UTC datetime object
+        utc_dt = datetime(
+            year=int(d_str[:4]),
+            month=int(d_str[4:6]),
+            day = int(d_str[6:]),
+            hour = int(t_str[:2]),
+            minute = int(t_str[2:]),
+            tzinfo = ZoneInfo("UTC")
+        )
+
+        # Convert to Berlin time and format with timezone name (CEST/CET)
+        berlin_dt = utc_dt.astimezone(ZoneInfo("Europe/Berlin"))
+        return berlin_dt.strftime("%Y-%m-%d %H:%M %Z")
+
     except Exception:
         return "N/A"
 
