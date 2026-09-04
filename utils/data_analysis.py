@@ -71,6 +71,9 @@ class AirlineVisualizer:
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (12, 5))
 
+        # Overall Figure Title
+        fig.suptitle("Aircraft Registration Mapping Coverage Audit", fontsize = 14, fontweight = 'bold', y = 0.95)
+
         # Donut Chart
         ax1.pie(
             status_counts,
@@ -93,16 +96,13 @@ class AirlineVisualizer:
             color=colors,
             width=0.5
         )
-        ax2.set_ylabel(
-            'Total Aircraft Records',
-            fontsize=10
-        )
-        ax2.set_title(
-            'Mapped vs. UNKNOWN_REG Record Counts',
-            fontsize=12,
-            fontweight='bold'
-        )
+        ax2.set_ylabel('Total Aircraft Records', fontsize=10)
+        ax2.set_title('Mapped vs. UNKNOWN_REG Record Counts', fontsize=12, fontweight='bold')
         ax2.set_ylim(0, max(status_counts.values) * 1.15)  # Add headroom for labels
+
+        # Modernize chart (Remove Top and Right Spines)
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
 
         for bar in bars:
             height = bar.get_height()
@@ -116,6 +116,9 @@ class AirlineVisualizer:
                 va='bottom',
                 fontweight='bold'
             )
+
+        # Adjust layout spacing to accommodate the overall title and footer
+        fig.subplots_adjust(top = 0.82, bottom = 0.12)
 
         return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
