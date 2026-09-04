@@ -55,15 +55,18 @@ class AirlineVisualizer:
         plt.close(fig)
         return filepath
 
+    @staticmethod
+    def _map_registration_status(val: str) -> str:
+        """Helper to map raw database registration values to clean display labels."""
+        return 'Unmapped' if val == 'UNKNOWN_REG' else 'Mapped'
+
     def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
         if df.empty or 'reg_number' not in df.columns:
             raise ValueError("DataFrame must contain 'reg_number' column.")
 
-        # Categorize entries into 'Mapped' vs 'UNKNOWN_REG'
-        status_counts = df['reg_number'].apply(
-            lambda x: 'UNKNOWN_REG' if x == 'UNKNOWN_REG' else 'Mapped'
-        ).value_counts()
+        # Use Class Helper Method for Cleaner Category Labels
+        status_counts = df['reg_number'].apply(self._map_registration_status).value_counts()
 
         # Calculate percentages for exact ratio labels
         total = len(df)
@@ -97,7 +100,7 @@ class AirlineVisualizer:
             width=0.5
         )
         ax2.set_ylabel('Total Aircraft Records', fontsize=10)
-        ax2.set_title('Mapped vs. UNKNOWN_REG Record Counts', fontsize=12, fontweight='bold')
+        ax2.set_title('Mapped vs. Unmapped Record Counts', fontsize=12, fontweight='bold')
         ax2.set_ylim(0, max(status_counts.values) * 1.15)  # Add headroom for labels
 
         # Modernize chart (Remove Top and Right Spines)
