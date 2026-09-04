@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -30,7 +31,7 @@ class AirlineVisualizer:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         # Add Data Freshness Annotation (Bottom Right Footer)
-        render_time = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+        render_time = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M %Z")
         freshness_label = f"Data as of: {data_as_of}" if data_as_of else "Data As Of: Unknown"
         footer_text = f"{freshness_label} | Rendered: {render_time}"
 
