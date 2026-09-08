@@ -133,18 +133,56 @@ class AirlineVisualizer:
 
         return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
-    def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png") -> Path:
-        """Histogram of flight altitudes to spot telemetry outliers."""
+    def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png", data_as_of: str | None = None) -> Path:
+        """Histogram of flight altitudes with European formatting and statistical reference line."""
         if 'aircraft_altitude' not in df.columns:
             raise ValueError("DataFrame must contain 'aircraft_altitude' column.")
 
-        fig, ax = plt.subplots(figsize=(8, 4.5))
-        ax.hist(df['aircraft_altitude'].dropna(), bins = 30, color = PALETTE['primary'], edgecolor = 'white')
-        ax.set_title("Live Fleet Altitude Distribution", fontweight = 'bold')
-        ax.set_xlabel("Altitude (ft)")
-        ax.set_ylabel("Aircraft Count")
+        altitudes = df['aircraft_altitude'].dropna()
 
-        return self._save_fig(fig, filename, subfolder="fleet")
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+        # Overall Figure Title
+        fig.suptitle("Live Fleet Altitude Distribution Audit", fontsize = 14, fontweight = 'bold', y = 0.95)
+
+        # Histogram
+        ax.hist(
+            df['aircraft_altitude'].dropna(),
+            bins = 30,
+            color = PALETTE['primary'],
+            edgecolor = 'white',
+            linewidth = 0.8
+        )
+
+        ax.set_title("Telemetry Altitude Spread", fontsize = 12, fontweight = 'bold', pad = 10)
+        ax.set_xlabel("Altitude (m)", fontsize = 10)
+        ax.set_ylabel("Aircraft Count", fontsize = 10)
+
+        # Remove Top and Right Spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        # Set European number format for both axes using class helper
+        from matplotlib.ticker import FuncFormatter
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
+
+        # Add median line
+        median_alt = altitudes.median()
+        ax.axvline(
+            median_alt,
+            color = PALETTE['secondary'],
+            linestyle = '--',
+            linewidth = 2,
+            label = f'Median: {self._format_eur_number(median_alt)} m',
+        )
+        ax.legend(frameon = False, loc = 'upper right')
+
+        # Set layout spacing
+        fig.subplots_adjust(top = 0.82, bottom = 0.15, left = 0.1, right = 0.95)
+
+        return self._save_fig(fig, filename, subfolder="fleet", data_as_of=data_as_of)
+
 
     def plot_top_airlines(self, df: pd.DataFrame, airline_col: str = 'airline_name', top_n: int = 10, filename: str = "top_airlines.png", data_as_of: str | None = None) -> Path | None:
         """Plots a horizontal bar chart of the top N airlines by active flight volume."""

@@ -31,6 +31,7 @@ from pipeline_utils import (
     enrich_dim_airports,
 )
 from utils.data_analysis import AirlineVisualizer
+from utils.run_visuals import get_warehouse_data_freshness
 
 # Initialize visualizer
 viz = AirlineVisualizer(output_dir=PROJECT_ROOT / "outputs")
@@ -138,10 +139,6 @@ else:
         # Merge: Attach schedules to the live flights
         final_fact_flights = build_fact_flight(fact_flights, clean_scheds, verbose=VERBOSE_PIPELINE)
 
-        # ---------------------------------------------
-        # Run Flight Altitude Distribution Plot
-        viz.plot_flight_altitude_distribution(dim_flight_position)
-
         # ================================================
         # Enrichment 1: Update the aircraft dimension with live patch
         try:
@@ -209,6 +206,20 @@ else:
 
         print("Pipeline run completed successfully!")
         print(f"Audit: Added {added_flights} new flights and {added_telemetry} telemetry points.")
+
+        # =========================================================================
+        # GENERATE VISUALIZATIONS
+        print("\nGenerating daily visual reports...")
+        with engine.connect() as conn:
+            # Fetch fresh warehouse timestamp
+            data_freshness_str = get_warehouse_data_freshness(conn)
+
+            # Run Flight Altitude Distribution Plot
+            path_alt = viz.plot_flight_altitude_distribution(
+                dim_flight_position,
+                data_as_of=data_freshness_str
+            )
+            print(f"Altitude distribution report saved: {path_alt}")
 
     else:
         print("No flight data returned from API today. Pipeline aborted.")
