@@ -228,13 +228,19 @@ class AirlineVisualizer:
 
         fig, ax = plt.subplots(figsize = (10, 5))
 
+        # Dynamic Color Array: Highlight #1 Leader in Primary Color, remaining in Secondary
+        bar_colors = [
+            PALETTE['primary'] if idx != len(counts) - 1 else PALETTE['secondary'] for idx in range(len(counts))
+        ]
+
         # Horizontal Bar Chart
         bars = ax.barh(
             counts.index,
             counts.values,
-            color = PALETTE['primary'],
-            height = 0.6,
-            alpha = 0.9
+            color = bar_colors,
+            height = 0.62,
+            edgecolor = 'none',
+            alpha = 0.92
         )
 
         # Titles and Labels
