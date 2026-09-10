@@ -135,55 +135,72 @@ class AirlineVisualizer:
         return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
     def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png", data_as_of: str | None = None) -> Path:
-        """Histogram of flight altitudes with European formatting and statistical reference line."""
+        """Histogram of flight altitudes with KDE overlay, European formatting and statistical reference line."""
         if 'aircraft_altitude' not in df.columns:
             raise ValueError("DataFrame must contain 'aircraft_altitude' column.")
 
         altitudes = df['aircraft_altitude'].dropna()
 
-        fig, ax = plt.subplots(figsize=(10, 5))
+        fig, ax1 = plt.subplots(figsize=(10, 5))
 
         # Overall Figure Title
         fig.suptitle("Live Fleet Altitude Distribution Audit", fontsize = 14, fontweight = 'bold', y = 0.95)
 
-        # Histogram
-        ax.hist(
+        # Primary Axis: Histogram (Counts)
+        ax1.hist(
             df['aircraft_altitude'].dropna(),
             bins = 30,
             color = PALETTE['primary'],
             edgecolor = 'white',
-            linewidth = 0.8
+            linewidth = 0.8,
+            alpha = 0.85
         )
 
-        ax.set_title("Telemetry Altitude Spread", fontsize = 12, fontweight = 'bold', pad = 10)
-        ax.set_xlabel("Altitude (m)", fontsize = 10)
-        ax.set_ylabel("Aircraft Count", fontsize = 10)
+        ax1.set_title("Telemetry Altitude Spread", fontsize = 12, fontweight = 'bold', pad = 10)
+        ax1.set_xlabel("Altitude (m)", fontsize = 10)
+        ax1.set_ylabel("Aircraft Count", fontsize = 10)
 
         # Set lower x-axis boundary at 0
-        ax.set_xlim(left = 0)
-        ax.margins(x = 0)
+        ax1.set_xlim(left = 0)
+        ax1.margins(x = 0)
 
-        # Remove Top and Right Spines
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+        # Secondary Axis: Kernel Density Estimate (KDE) Overlay
+        ax2 = ax1.twinx()
+        altitudes.plot.kde(
+            ax=ax2,
+            color=PALETTE['secondary'],
+            linewidth = 2.5,
+            label = 'KDE Density'
+        )
+        ax2.set_ylabel("Density", fontsize = 10, color = PALETTE['secondary'])
+        ax2.set_ylim(bottom = 0)
+
+        # Spine adjustments
+        ax1.spines['top'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
 
         # Set European number format for both axes using class helper
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
+        ax1.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
+        ax1.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
 
-        # Add median line
+        # Vertical Median Line
         median_alt = altitudes.median()
-        ax.axvline(
+        ax1.axvline(
             median_alt,
             color = PALETTE['secondary'],
             linestyle = '--',
             linewidth = 2,
             label = f'Median: {self._format_eur_number(median_alt)} m',
         )
-        ax.legend(frameon = False, loc = 'upper right')
+
+        # Combined Legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, frameon = False, loc = 'upper right')
 
         # Set layout spacing
-        fig.subplots_adjust(top = 0.82, bottom = 0.15, left = 0.1, right = 0.95)
+        fig.subplots_adjust(top = 0.82, bottom = 0.15, left = 0.1, right = 0.9)
 
         return self._save_fig(fig, filename, subfolder="fleet", data_as_of=data_as_of)
 
