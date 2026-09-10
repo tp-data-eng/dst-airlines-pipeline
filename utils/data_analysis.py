@@ -215,12 +215,19 @@ class AirlineVisualizer:
             print(f"Warning: DataFrame empty or missing '{airline_col}'. Skipping plot.")
             return None
 
-        # Aggregate counts & take Top N
+        # Calculate counts & percentages
+        total_volume = len(df[df[airline_col].notna()])
         top_counts = df[airline_col].value_counts().head(top_n)
 
         if top_counts.empty:
             print(f"Warning: No valid records found in {airline_col}. Skipping plot.")
             return None
+
+        # Dynamic metrics for the #1 leading airline
+        top_airline_name = top_counts.index[0]
+        top_airline_count = top_counts.iloc[0]
+        top_airline_share = (top_airline_count / total_volume) * 100
+        formatted_share = f"{top_airline_share:.1f}%".replace('.', ',')
 
         # Reverse order for top-to-bottom bar chart display
         counts = top_counts.iloc[::-1]
@@ -244,40 +251,64 @@ class AirlineVisualizer:
         )
 
         # Titles and Labels
-        ax.set_title(
+        fig.suptitle(
             f"Top {top_n} Active Airlines by Flight Count",
-            fontsize = 12,
+            fontsize = 14,
             fontweight = 'bold',
-            pad = 12
+            x = 0.5,
+            ha = 'center',
+            y = 0.98
         )
+        # ax.set_title(
+        #   f"Key Insight: {top_airline_name} leads operating volume with {formatted_share} total market share in active telemetry",
+        #    fontsize = 10,
+        #    color = '#555555',
+        #    pad = 12,
+        #    loc = 'center'
+        #)
+
         ax.set_xlabel("Total Flights", fontsize = 10, labelpad = 8)
 
         # Set x-axis limit with 15% headroom for annotations
         ax.set_xlim(0, max_count * 1.15)
 
-        # Remove Top and Right Spines for a clean visual
+        # Clean Spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color("#cccccc")
+        ax.spines['bottom'].set_color("#cccccc")
 
         # Apply European formatting to x-axis tick labels
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
 
-        # Annotate Bar Values with European Number Formatting
-        for bar in bars:
+        # Annotate Values with Count and Market Share %
+        for bar, val in zip(bars, counts.values):
             width = bar.get_width()
+            share_pct = (val / total_volume) * 100
+            label_str = (
+                f"{self._format_eur_number(width)}  ({share_pct:.1f}%)".replace(
+                ".", ","
+                )
+            )
+
+            # Distinct text color for top leader
+            is_leader = width == max_count
+            text_color = PALETTE['secondary'] if is_leader else PALETTE['neutral']
+
             ax.annotate(
-                self._format_eur_number(width),
+                f"{self._format_eur_number(width)} ({share_pct:.1f}%)",
                 xy = (width, bar.get_y() + bar.get_height() / 2),
-                xytext = (6, 0),
+                xytext = (7, 0),
                 textcoords = 'offset points',
                 ha = 'left',
                 va = 'center',
                 fontweight = 'bold',
-                fontsize = 9,
-                color = PALETTE['neutral']
+                fontsize = 9.5,
+                color = text_color
             )
 
         plt.tight_layout()
+        #fig.subplots_adjust(top = 0.84)
         return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
 
     def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png", data_as_of: str = None) -> Path:
