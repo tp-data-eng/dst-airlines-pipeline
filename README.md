@@ -166,14 +166,17 @@ To validate data enrichment success and audit warehouse health, the pipeline inc
 
 ### Automated Visual Reporting (`AirlineVisualizer`)
 
-| Reporting Method | Output Artifact                                 | Analytical Purpose | Trigger Script         |
-| :--- |:------------------------------------------------| :--- |:-----------------------|
-| `plot_registration_coverage()` | `registration_coverage.png`                     | Dual donut/bar chart tracking the percentage of mapped vs. `UNKNOWN_REG` tail numbers. | `pipeline_daily.py`    |
-| `plot_fleet_coverage_audit()` | `fleet_coverage_audit.png`                      | Two-panel visual audit tracking total enriched-to-unknown model ratios and top resolved commercial airframe types. | `pipeline_monthly.py`  |
-| `plot_top_aircraft_models()` | `top_aircraft_models.png`                       | Horizontal bar chart of frequent aircraft models, highlighting unmapped entities in a distinct warning color. | `pipeline_daily.py`    |
-| `plot_top_airlines()` | `top_airlines.png`                              | Ranks top active carriers by flight volume across operational data feeds. | `pipeline_daily.py`    |
-| `plot_top_hub_airlines()` | `top_hub_airlines.png`                          | Side-by-side horizontal bar charts comparing top active airlines operating across target hub airports (EGLL, LTFM, LFPG). | `utils/run_visuals.py` |
+| Reporting Method | Output Artifact                    | Analytical Purpose | Trigger Script         |
+| :--- |:-----------------------------------| :--- |:-----------------------|
+| `plot_registration_coverage()` | `registration_coverage.png`        | Dual donut/bar chart tracking the percentage of mapped vs. `UNKNOWN_REG` tail numbers. | `pipeline_daily.py`    |
+| `plot_fleet_coverage_audit()` | `fleet_coverage_audit.png`         | Two-panel visual audit tracking total enriched-to-unknown model ratios and top resolved commercial airframe types. | `pipeline_monthly.py`  |
+| `plot_top_aircraft_models()` | `top_aircraft_models.png`          | Horizontal bar chart of frequent aircraft models, highlighting unmapped entities in a distinct warning color. | `pipeline_daily.py`    |
+| `plot_top_airlines()` | `docs/figures/top_airlines.png` | Ranks top active carriers by flight volume with dynamic market share annotations and category leader highlights. | `pipeline_daily.py` |
+| `plot_top_hub_airlines()` | `top_hub_airlines.png`             | Side-by-side horizontal bar charts comparing top active airlines operating across target hub airports (EGLL, LTFM, LFPG). | `utils/run_visuals.py` |
 | `plot_flight_altitude_distribution()` | `docs/figures/flight_altitude_distribution.png` | Telemetry altitude histogram with integrated Kernel Density Estimate (KDE) curve and operational median reference line. | `pipeline_daily.py`    |
+
+#### Top Active Airlines Volume & Market Share
+![Top Active Airlines](docs/figures/top_airlines.png)
 
 #### Live Fleet Altitude Distribution Audit
 ![Telemetry Altitude Spread](docs/figures/flight_altitude_distribution.png)
