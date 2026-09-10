@@ -215,32 +215,59 @@ class AirlineVisualizer:
             print(f"Warning: DataFrame empty or missing '{airline_col}'. Skipping plot.")
             return None
 
-        # Aggregate counts & slice top N (reversed for top-to-bottom bar order)
-        counts = df[airline_col].value_counts().head(top_n).iloc[::-1]
+        # Aggregate counts & take Top N
+        top_counts = df[airline_col].value_counts().head(top_n)
+
+        if top_counts.empty:
+            print(f"Warning: No valid records found in {airline_col}. Skipping plot.")
+            return None
+
+        # Reverse order for top-to-bottom bar chart display
+        counts = top_counts.iloc[::-1]
+        max_count = top_counts.max()
 
         fig, ax = plt.subplots(figsize = (10, 5))
+
+        # Horizontal Bar Chart
         bars = ax.barh(
             counts.index,
             counts.values,
             color = PALETTE['primary'],
-            height = 0.6
+            height = 0.6,
+            alpha = 0.9
         )
 
-        ax.set_title(f"Top {top_n} Active Airlines by Flight Count", fontsize = 12, fontweight = 'bold')
-        ax.set_xlabel("Total Flights", fontsize = 10)
-        ax.set_xlim(0, max(counts.values) * 1.15)       # Add headroom for labels
+        # Titles and Labels
+        ax.set_title(
+            f"Top {top_n} Active Airlines by Flight Count",
+            fontsize = 12,
+            fontweight = 'bold',
+            pad = 12
+        )
+        ax.set_xlabel("Total Flights", fontsize = 10, labelpad = 8)
 
-        # Bars with Counts
+        # Set x-axis limit with 15% headroom for annotations
+        ax.set_xlim(0, max_count * 1.15)
+
+        # Remove Top and Right Spines for a clean visual
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        # Apply European formatting to x-axis tick labels
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
+
+        # Annotate Bar Values with European Number Formatting
         for bar in bars:
             width = bar.get_width()
             ax.annotate(
-                f'{width:,}',
+                self._format_eur_number(width),
                 xy = (width, bar.get_y() + bar.get_height() / 2),
-                xytext = (5, 0),
+                xytext = (6, 0),
                 textcoords = 'offset points',
                 ha = 'left',
                 va = 'center',
                 fontweight = 'bold',
+                fontsize = 9,
                 color = PALETTE['neutral']
             )
 
