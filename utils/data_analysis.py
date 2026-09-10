@@ -134,7 +134,7 @@ class AirlineVisualizer:
 
         return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
-    def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png", data_as_of: str | None = None) -> Path:
+    def plot_flight_altitude_distribution(self, df: pd.DataFrame, filename: str = "flight_altitude_distribution.png", data_as_of: str | None = None) -> Path | None:
         """Histogram of flight altitudes with KDE overlay, European formatting and statistical reference line."""
         if 'aircraft_altitude' not in df.columns:
             raise ValueError("DataFrame must contain 'aircraft_altitude' column.")
@@ -148,7 +148,7 @@ class AirlineVisualizer:
 
         # Primary Axis: Histogram (Counts)
         ax1.hist(
-            df['aircraft_altitude'].dropna(),
+            altitudes,
             bins = 30,
             color = PALETTE['primary'],
             edgecolor = 'white',
@@ -172,13 +172,17 @@ class AirlineVisualizer:
             linewidth = 2.5,
             label = 'KDE Density'
         )
-        ax2.set_ylabel("Density", fontsize = 10, color = PALETTE['secondary'])
-        ax2.set_ylim(bottom = 0)
+
+        # Clean up secondary axis (hide raw density decimals & add 25% peak headroom)
+        ax2.set_yticks([])
+        ax2.set_ylabel("")
+        ax2.set_ylim(bottom = 0, top = ax2.get_ylim()[1] * 1.25)
 
         # Spine adjustments
         ax1.spines['top'].set_visible(False)
         ax2.spines['top'].set_visible(False)
         ax1.spines['right'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
 
         # Set European number format for both axes using class helper
         ax1.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
@@ -197,10 +201,10 @@ class AirlineVisualizer:
         # Combined Legend
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, frameon = False, loc = 'upper right')
+        ax1.legend(lines1 + lines2, labels1 + labels2, frameon = False, loc = 'upper left')
 
         # Set layout spacing
-        fig.subplots_adjust(top = 0.82, bottom = 0.15, left = 0.1, right = 0.9)
+        fig.subplots_adjust(top = 0.82, bottom = 0.15, left = 0.1, right = 0.95)
 
         return self._save_fig(fig, filename, subfolder="fleet", data_as_of=data_as_of)
 
