@@ -156,8 +156,8 @@ For production or scheduled server environments, the monthly and daily scripts c
 ---
 
 ## Data Quality & Telemetry Visualizations
-
 To validate data enrichment success and audit warehouse health, the pipeline incorporates an automated visualization engine (`utils/data_analysis.py`). Outputs are stored as high-resolution figures directly in `/outputs`.
+* **Color-Blind Accessible Palette (CVD Compliant):** All visual assets utilize a high-contrast **Navy Blue (`#1f4e78`)** and **Rust Orange (`#d9531e`)** color palette. This Blue-Orange combination specifically accommodates **Deuteranopia** and **Protanopia** (red-green color blindness), ensuring optimal visual distinction across telemetry distributions, chart bars, and reference markers without relying on red-green status indicators.
 
 ### Aircraft & Telemetry Enrichment Strategies
 * **Paginated Fleet Resolution:** Implemented `ingest_aircraft_paginated()` to systematically request 50-record offset pages from the AirLabs `/fleets` API endpoint during monthly refreshes, resolving `UNKNOWN_MODEL` defaults.
