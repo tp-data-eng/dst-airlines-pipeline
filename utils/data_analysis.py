@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import pandas as pd
 
 # ----------------------------------------------------------------------
@@ -158,12 +159,15 @@ class AirlineVisualizer:
         ax.set_xlabel("Altitude (m)", fontsize = 10)
         ax.set_ylabel("Aircraft Count", fontsize = 10)
 
+        # Set lower x-axis boundary at 0
+        ax.set_xlim(left = 0)
+        ax.margins(x = 0)
+
         # Remove Top and Right Spines
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
 
         # Set European number format for both axes using class helper
-        from matplotlib.ticker import FuncFormatter
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
         ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
 
