@@ -464,6 +464,132 @@ class AirlineVisualizer:
         return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
 
 
+    def plot_hub_market_share_donuts(
+            self,
+            df: pd.DataFrame,
+            airport_col: str = 'hub_airport',
+            airline_col: str = 'airline_name',
+            top_n: int = 4,
+            filename: str = 'hub_market_share_donuts.png',
+            data_as_of: str | None = None,
+    ) -> Path | None:
+        """Plots side-by-side donut charts showing airline market share concentration at target hubs."""
+        if df.empty or airline_col not in df.columns or airport_col not in df.columns:
+            print("Warning: Missing required columns for donut plot.")
+            return None
+
+        valid_df = df[df[airline_col].notna()].copy()
+        grouped = (
+            valid_df.groupby([airport_col, airline_col])
+            .size()
+            .reset_index(name='flight_count')
+        )
+        hubs = grouped[airport_col].unique()
+
+        if len(hubs) == 0:
+            return None
+
+        fig, axes = plt.subplots(
+            1, len(hubs), figsize = (5.8 * len(hubs), 5.5), subplot_kw = dict(aspect='equal')
+        )
+        if len(hubs) == 1:
+            axes = [axes]
+
+        fig.suptitle(
+            "Airline Market Share Concentration Across Target Hubs",
+            fontsize = 14,
+            fontweight = 'bold',
+            x = 0.04,
+            ha = 'left',
+            y = 0.98
+        )
+
+        # Sequential blue shades to differentiate secondary carriers (Airlines 2-4)
+        SECONDARY_BLUE_GRADIENT = ["#2b5c8f", "#4f7bb0", "#7ba3cd"]
+
+        for ax, hub in zip(axes, hubs):
+            hub_data = (
+                grouped[grouped[airport_col] == hub]
+                .sort_values("flight_count", ascending = False)
+            )
+            total_flights = hub_data['flight_count'].sum()
+
+            # Slice Top N airlines, group rest into 'Other'
+            top_slice = hub_data.head(top_n).copy()
+            other_count = hub_data.iloc[top_n:]['flight_count'].sum()
+
+            if other_count > 0:
+                other_row = pd.DataFrame(
+                    [{airport_col: hub, airline_col: 'Other Airlines', 'flight_count': other_count}]
+                )
+                top_slice = pd.concat([top_slice, other_row], ignore_index = True)
+
+            # Palette: #1 Leader in secondary, 2-4 in primary, 'Other' in neutral
+            colors = []
+            secondary_idx = 0
+            for i, row in top_slice.iterrows():
+                if i == 0:
+                    colors.append(PALETTE['secondary'])     # Secondary for #1 Leader
+                elif row[airline_col] == 'Other Airlines':
+                    colors.append(PALETTE['neutral'])       # Neutral for Others
+                else:
+                    # Assign distinct shade of blue for carriers 2 through 4
+                    color = SECONDARY_BLUE_GRADIENT[secondary_idx % len(SECONDARY_BLUE_GRADIENT)]
+                    colors.append(color)
+                    secondary_idx += 1
+
+            # Draw Donut Chart
+            wedges, texts, autotexts = ax.pie(
+                top_slice['flight_count'],
+                autopct = lambda pct: f"{pct:.1f}%".replace(".", ",") if pct >= 3.0 else "",
+                startangle = 140,
+                colors = colors,
+                pctdistance = 0.68,
+                wedgeprops = dict(width = 0.40, edgecolor = 'white', linewidth = 2)
+            )
+
+            # Style percentage value annotations dynamically based on slice size
+            total_val = sum(top_slice["flight_count"])
+            for i, (autotext, wedge) in enumerate(zip(autotexts, wedges)):
+                pct = (top_slice.iloc[i]["flight_count"] / total_val) * 100
+
+                # Larger slices get bold white text inside; small slices get gray text
+                if pct < 10.0:
+                    autotext.set_color("#333333")
+                    autotext.set_fontsize(8.0)
+                    autotext.set_weight("bold")
+                else:
+                    autotext.set_color("white")
+                    autotext.set_fontsize(8.5)
+                    autotext.set_weight("bold")
+
+            # Subplot Title
+            formatted_total = self._format_eur_number(total_flights)
+            ax.set_title(
+                f"Hub: {hub}\n({formatted_total} Flights)",
+                fontsize = 11,
+                fontweight = 'bold',
+                pad = 10
+            )
+
+            # Clean legend below each subplot to eliminate text collisions
+            ax.legend(
+                wedges,
+                top_slice[airline_col],
+                title = 'Airlines',
+                loc = 'upper center',
+                bbox_to_anchor = (0.5, -0.06),
+                frameon = False,
+                fontsize = 8.5,
+                title_fontsize = 9
+            )
+
+        plt.tight_layout()
+        fig.subplots_adjust(top = 0.82, bottom = 0.25)
+
+        return self._save_fig(fig, filename, subfolder = 'airlines', data_as_of = data_as_of)
+
+
     def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png", data_as_of: str | None = None) -> Path:
         """Generates a 2-panel visual auditing data enrichment health:
         1. Known vs UNKNOWN coverage ratio

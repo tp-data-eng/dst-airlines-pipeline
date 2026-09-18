@@ -121,12 +121,23 @@ def main():
         # Scheduled Hub Traffic
         try:
             df_hubs = pd.read_sql(QUERY_HUB_AIRLINES, conn)
+
+            # Standard Top Hub Horizontal Bar Chart
             path = viz.plot_top_hub_airlines(
                 df_hubs,
                 top_n=5,
                 data_as_of=data_freshness_str
             )
             print(f" -> Hub traffic report saved: {path}")
+
+            # Donut Chart Visual Alternative
+            path_donuts = viz.plot_hub_market_share_donuts(
+                df_hubs,
+                top_n = 4,
+                data_as_of = data_freshness_str
+            )
+            print(f" -> Hub Market Share Donuts saved: {path_donuts}")
+
         except Exception as e:
             print(f" -> Skipping Hub Traffic Report: {e}")
 
