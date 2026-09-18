@@ -98,6 +98,11 @@ class AirlineVisualizer:
             y = y,
         )
 
+    @staticmethod
+    def _format_eur_pct(val: float, decimals: int = 1) -> str:
+        """Formats float values as European percentage strings (e.g. 41.4 -> '41,4%')."""
+        return f"{val:.{decimals}f}%".replace(".", ",")
+
 
     def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
@@ -114,7 +119,7 @@ class AirlineVisualizer:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (12, 5))
 
         # Overall Figure Title
-        self._setup_figure_header(fig, "Aircraft Registration Mapping Coverage Audit", y = 0.95)
+        self._setup_figure_header(fig, "Aircraft Registration Mapping Coverage Audit")
 
         # Donut Chart
         ax1.pie(
@@ -152,7 +157,7 @@ class AirlineVisualizer:
             height = bar.get_height()
             pct = (height / total) * 100
             ax2.annotate(
-                f'{self._format_eur_number(height)}\n({pct:.1f}%)',
+                f'{self._format_eur_number(height)}\n({self._format_eur_pct(pct)})',
                 xy=(bar.get_x() + bar.get_width() / 2, height),
                 xytext=(0, 5),
                 textcoords='offset points',
@@ -176,7 +181,7 @@ class AirlineVisualizer:
         fig, ax1 = plt.subplots(figsize=(10, 5))
 
         # Overall Figure Title
-        self._setup_figure_header(fig, "Live Fleet Altitude Distribution Audit", y = 0.95)
+        self._setup_figure_header(fig, "Live Fleet Altitude Distribution Audit")
 
         # Primary Axis: Histogram (Counts)
         ax1.hist(
@@ -257,7 +262,7 @@ class AirlineVisualizer:
         top_airline_name = top_counts.index[0]
         top_airline_count = top_counts.iloc[0]
         top_airline_share = (top_airline_count / total_volume) * 100
-        formatted_share = f"{top_airline_share:.1f}%".replace('.', ',')
+        formatted_share = f"{self._format_eur_pct(top_airline_share)}"
 
         # Reverse order for top-to-bottom bar chart display
         counts = top_counts.iloc[::-1]
@@ -281,7 +286,7 @@ class AirlineVisualizer:
         )
 
         # Titles and Labels
-        self._setup_figure_header(fig, f"Top {top_n} Active Airlines by Flight Count", x = 0.5, y = 0.98)
+        self._setup_figure_header(fig, f"Top {top_n} Active Airlines by Flight Count")
 
         # ax.set_title(
         #   f"Key Insight: {top_airline_name} leads operating volume with {formatted_share} total market share in active telemetry",
@@ -307,9 +312,7 @@ class AirlineVisualizer:
             width = bar.get_width()
             share_pct = (val / total_volume) * 100
             label_str = (
-                f"{self._format_eur_number(width)}  ({share_pct:.1f}%)".replace(
-                ".", ","
-                )
+                f"{self._format_eur_number(width)} ({self._format_eur_pct(share_pct)})"
             )
 
             # Distinct text color for top leader
@@ -317,7 +320,7 @@ class AirlineVisualizer:
             text_color = PALETTE['secondary'] if is_leader else PALETTE['neutral']
 
             ax.annotate(
-                f"{self._format_eur_number(width)} ({share_pct:.1f}%)",
+                f"{self._format_eur_number(width)} ({self._format_eur_pct(share_pct)})",
                 xy = (width, bar.get_y() + bar.get_height() / 2),
                 xytext = (7, 0),
                 textcoords = 'offset points',
@@ -332,10 +335,16 @@ class AirlineVisualizer:
         #fig.subplots_adjust(top = 0.84)
         return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
 
-    def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png", data_as_of: str = None) -> Path:
-        """
-        Plots side-by-side horizontal bar charts comparing airline market share (%) across target hub airports.
-        """
+    def plot_top_hub_airlines(
+            self,
+            df: pd.DataFrame,
+            airport_col: str = 'hub_airport',
+            airline_col: str = 'airline_name',
+            top_n: int = 5,
+            filename: str = "top_hub_airlines.png",
+            data_as_of: str | None = None
+    ) -> Path:
+        """Plots side-by-side horizontal bar charts comparing airline market share (%) across target hub airports."""
         if df.empty or airline_col not in df.columns or airport_col not in df.columns:
             print("Warning: Missing required columns for hub airline plot.")
             return None
@@ -375,7 +384,7 @@ class AirlineVisualizer:
         hubs = top_per_hub[airport_col].unique()
 
         if len(hubs) == 0:
-            print("Warning: No hub data avqailable to plot.")
+            print("Warning: No hub data available to plot.")
             return None
 
         # Create Fig
@@ -429,7 +438,7 @@ class AirlineVisualizer:
             self._apply_clean_spines(ax)
 
             # Format X-axis tick labels as European percentage strings
-            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x:.0f}%".replace(".", ",")))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_pct(x, decimals = 0)))
 
             # Bar Annotations: Format raw flights + market share percentage
             for bar, raw_count, share_val in zip(
@@ -442,10 +451,9 @@ class AirlineVisualizer:
                 )
 
                 formatted_val = self._format_eur_number(raw_count)
-                formatted_pct = f"{share_val:.1f}".replace(".", ",")
 
                 ax.annotate(
-                    f"{formatted_val} ({formatted_pct}",
+                    f"{formatted_val} ({self._format_eur_pct(share_val)})",
                     xy = (width, bar.get_y() + bar.get_height() / 2),
                     xytext = (6, 0),
                     textcoords = 'offset points',
@@ -544,7 +552,7 @@ class AirlineVisualizer:
             # Draw Donut Chart
             wedges, texts, autotexts = ax.pie(
                 top_slice['flight_count'],
-                autopct = lambda pct: f"{pct:.1f}%".replace(".", ",") if pct >= 3.0 else "",
+                autopct = lambda pct: self._format_eur_pct(pct) if pct >= 3.0 else "",
                 startangle = 140,
                 colors = colors,
                 pctdistance = 0.68,
@@ -700,8 +708,8 @@ class AirlineVisualizer:
             fontsize = 9
         )
 
-        plt.tight_layout
-        fig.subplots_adjust(top = 0.86)
+        plt.tight_layout()
+        fig.subplots_adjust(top = 0.82, bottom = 0.15)
 
         return self._save_fig(fig, filename, subfolder = 'airlines', data_as_of = data_as_of)
 
@@ -746,7 +754,7 @@ class AirlineVisualizer:
         for bar in bars1:
             yval = bar.get_height()
             ax1.annotate(
-                f'{yval:,}',
+                f'self._format_eur_number(yval)',
                 xy = (bar.get_x() + bar.get_width() / 2, yval),
                 xytext = (0, 3),
                 textcoords = 'offset points',
@@ -766,7 +774,7 @@ class AirlineVisualizer:
             for bar in bars2:
                 width = bar.get_width()
                 ax2.annotate(
-                    f'{width:,}',
+                    f'self._format_eur_number(width)',
                     xy = (width, bar.get_y() + bar.get_height() / 2),
                     xytext = (5, 0),
                     textcoords = 'offset points',
