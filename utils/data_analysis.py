@@ -66,6 +66,21 @@ class AirlineVisualizer:
         """Formats numbers using European style (1,000 -> 1.000)."""
         return f"{int(val):,}".replace(",", ".")
 
+    @staticmethod
+    def _apply_clean_spines(
+            ax: plt.Axes,
+            top: bool = False,
+            right: bool = False,
+            left_color: str = "#cccccc",
+            bottom_color: str = '#cccccc'
+    ):
+        """Applies standardized clean spine formatting to a Matplotlib Axes object."""
+        ax.spines["top"].set_visible(top)
+        ax.spines["right"].set_visible(right)
+        ax.spines["left"].set_color(left_color)
+        ax.spines["bottom"].set_color(bottom_color)
+
+
     def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
         if df.empty or 'reg_number' not in df.columns:
@@ -113,8 +128,7 @@ class AirlineVisualizer:
         ax2.set_xlim(-0.6, 1.6)
 
         # Modernize chart (Remove Top and Right Spines)
-        ax2.spines['top'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
+        self._apply_clean_spines(ax2)
 
         for bar in bars:
             height = bar.get_height()
@@ -179,10 +193,8 @@ class AirlineVisualizer:
         ax2.set_ylim(bottom = 0, top = ax2.get_ylim()[1] * 1.25)
 
         # Spine adjustments
-        ax1.spines['top'].set_visible(False)
-        ax2.spines['top'].set_visible(False)
-        ax1.spines['right'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
+        self._apply_clean_spines(ax1)
+        self._apply_clean_spines(ax2)
 
         # Set European number format for both axes using class helper
         ax1.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
@@ -273,10 +285,7 @@ class AirlineVisualizer:
         ax.set_xlim(0, max_count * 1.15)
 
         # Clean Spines
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color("#cccccc")
-        ax.spines['bottom'].set_color("#cccccc")
+        self._apply_clean_spines(ax)
 
         # Apply European formatting to x-axis tick labels
         ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
@@ -343,7 +352,6 @@ class AirlineVisualizer:
             lambda row: (row["flight_count"] / hub_totals[row[airport_col]]) * 100,
             axis = 1
         )
-
 
         # Filtering: Rank airlines per hub and keep only the Top N for each airport
         top_per_hub = (
@@ -413,10 +421,7 @@ class AirlineVisualizer:
             ax.set_xlim(0, max_share * 1.30)
 
             # Clean Spines
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_color("#cccccc")
-            ax.spines['bottom'].set_color("#cccccc")
+            self._apply_clean_spines(ax)
 
             # Format X-axis tick labels as European percentage strings
             ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x:.0f}%".replace(".", ",")))
@@ -669,10 +674,7 @@ class AirlineVisualizer:
         ax.set_xlim(0, 100)
 
         # Clean Spines
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines["left"].set_color("#cccccc")
-        ax.spines["bottom"].set_color("#cccccc")
+        self._apply_clean_spines(ax)
 
         # Annotate Percentages inside bars
         for i, row in summary_df.reset_index(drop = True).iterrows():
