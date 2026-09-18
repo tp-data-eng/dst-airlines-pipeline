@@ -175,16 +175,6 @@ To validate data enrichment success and audit warehouse health, the pipeline inc
 
 ---
 
-#### Top Active Airlines Volume & Market Share
-* **Method:** `plot_top_airlines()`
-* **Trigger:** `pipeline_daily.py`
-* **Artifact:** `docs/figures/top_airlines.png`
-* **Purpose:** Ranks top active carriers by flight volume with dynamic market share annotations and category leader highlights.
-
-![Top Active Airlines](docs/figures/top_airlines.png)
-
----
-
 #### Live Fleet Altitude Distribution Audit
 * **Method:** `plot_flight_altitude_distribution()`
 * **Trigger:** `pipeline_daily.py`
@@ -192,6 +182,28 @@ To validate data enrichment success and audit warehouse health, the pipeline inc
 * **Purpose:** Telemetry altitude histogram with integrated Kernel Density Estimate (KDE) curve and operational median reference line.
 
 ![Telemetry Altitude Spread](docs/figures/flight_altitude_distribution.png)
+
+---
+
+#### **Hub Consolidation Index (Home Flag Carrier Dominance)**
+* **Method:** `plot_hub_consolidation_comparison()`
+* **Trigger:** `utils/run_visuals.py`
+* **Artifact:** `docs/figures/hub_consolidation_comparison.png`
+* **Purpose:** Stacked bar chart auditing home flag carrier market share vs. foreign competition across target hubs (`EGLL`, `LFPG`, `LTFM`).
+
+![Hub Consolidation Index](docs/figures/hub_consolidation_comparison.png)
+
+---
+
+#### Top Active Airlines Volume & Market Share
+* **Method:** `plot_top_airlines()`
+* **Trigger:** `utils/run_visuals.py`
+* **Artifact:** `docs/figures/top_airlines.png`
+* **Purpose:** Ranks top active carriers by flight volume with dynamic market share annotations and category leader highlights.
+
+![Top Active Airlines](docs/figures/top_airlines.png)
+
+---
 
 ---
 

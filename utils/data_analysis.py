@@ -590,6 +590,128 @@ class AirlineVisualizer:
         return self._save_fig(fig, filename, subfolder = 'airlines', data_as_of = data_as_of)
 
 
+    def plot_hub_consolidation_comparison(
+            self,
+            df: pd.DataFrame,
+            airport_col: str = 'hub_airport',
+            airline_col: str = 'airline_name',
+            filename: str = 'hub_consolidation_comparison.png',
+            data_as_of: str | None = None,
+    ) -> Path | None:
+        """Plots a single comparison bar chart contrasting Home Carrier Dominance vs. Foreign Competitors."""
+        if df.empty or airline_col not in df.columns or airport_col not in df.columns:
+            return None
+
+        # Map primary home carriers per target hub
+        HOME_CARRIER_MAP = {
+            "EGLL": "British Airways",
+            "LFPG": "Air France",
+            "LTFM": "Turkish Airlines"
+        }
+
+        valid_df = df[df[airline_col].notna()].copy()
+        hubs = valid_df[airport_col].unique()
+
+        records = []
+        for hub in hubs:
+            hub_data = valid_df[valid_df[airport_col] == hub]
+            total = len(hub_data)
+            home_carrier = HOME_CARRIER_MAP.get(hub, hub_data[airline_col].mode()[0])
+
+            home_count = len(hub_data[hub_data[airline_col] == home_carrier])
+            foreign_count = total - home_count
+
+            records.append({
+                "hub": hub,
+                "home_carrier": home_carrier,
+                "home_pct": (home_count / total) * 100 if total > 0 else 0,
+                "foreign_pct": (foreign_count / total) * 100 if total > 0 else 0,
+                "total_flights": total
+            })
+
+        summary_df = pd.DataFrame(records).sort_values("home_pct", ascending = False)
+
+        fig, ax = plt.subplots(figsize = (9, 4.5))
+
+        # Render Stacked Horizontal Bars (100% Market Share)
+        y_pos = range(len(summary_df))
+        bars_home = ax.barh(
+            y_pos,
+            summary_df["home_pct"],
+            color = PALETTE['secondary'],
+            height = 0.52,
+            label = "Home Flag Carrier"
+        )
+        bars_foreign = ax.barh(
+            y_pos,
+            summary_df["foreign_pct"],
+            left = summary_df["home_pct"],
+            color = PALETTE['primary'],
+            height = 0.52,
+            label = "Foreign Competitors"
+        )
+
+        # Titles & Labels
+        fig.suptitle(
+            "Hub Consolidation Index: Home Carrier Market Dominance",
+            fontsize = 13,
+            fontweight = 'bold',
+            x = 0.04,
+            ha = 'left',
+            y = 0.98
+        )
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(
+            [f"Hub: {row['hub']}\n({row['home_carrier']})" for _, row in summary_df.iterrows()],
+            fontsize = 9.5
+        )
+        ax.set_xlabel("Market Share (%)", fontsize = 9.5, fontweight = 'bold', labelpad = 8)
+        ax.set_xlim(0, 100)
+
+        # Clean Spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines["left"].set_color("#cccccc")
+        ax.spines["bottom"].set_color("#cccccc")
+
+        # Annotate Percentages inside bars
+        for i, row in summary_df.reset_index(drop = True).iterrows():
+            if row['home_pct'] > 5:
+                # Home Carrier %
+                ax.annotate(
+                    f"{row['home_pct']:.1f}%".replace(".", ","),
+                    xy = (row['home_pct'] / 2, i),
+                    ha = 'center',
+                    va = 'center',
+                    color = 'white',
+                    fontweight = 'bold',
+                    fontsize = 9.5
+                )
+                # Foreign Competitors %
+                ax.annotate(
+                    f"{row['foreign_pct']:.1f}%".replace(".", ","),
+                    xy = (row['home_pct'] + (row['foreign_pct'] / 2), i),
+                    ha = 'center',
+                    va = 'center',
+                    color = 'white',
+                    fontweight = 'bold',
+                    fontsize = 9.5
+                )
+
+        ax.legend(
+            loc = 'lower right',
+            bbox_to_anchor = (1.0, 1.02),
+            ncol = 2,
+            frameon = False,
+            fontsize = 9
+        )
+
+        plt.tight_layout
+        fig.subplots_adjust(top = 0.86)
+
+        return self._save_fig(fig, filename, subfolder = 'airlines', data_as_of = data_as_of)
+
+
     def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png", data_as_of: str | None = None) -> Path:
         """Generates a 2-panel visual auditing data enrichment health:
         1. Known vs UNKNOWN coverage ratio

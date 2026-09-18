@@ -138,6 +138,13 @@ def main():
             )
             print(f" -> Hub Market Share Donuts saved: {path_donuts}")
 
+            # Hub Consolidation Index (Home Carrier vs. Foreign Competitors)
+            path_consolidation = viz.plot_hub_consolidation_comparison(
+                df_hubs,
+                data_as_of = data_freshness_str
+            )
+            print(f" -> Hub Consolidation Index Report saved: {path_consolidation}")
+
         except Exception as e:
             print(f" -> Skipping Hub Traffic Report: {e}")
 
