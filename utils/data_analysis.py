@@ -80,6 +80,24 @@ class AirlineVisualizer:
         ax.spines["left"].set_color(left_color)
         ax.spines["bottom"].set_color(bottom_color)
 
+    @staticmethod
+    def _setup_figure_header(
+            fig: plt.Figure,
+            title: str,
+            fontsize: int = 14,
+            x: float = 0.04,
+            y: float = 0.98
+    ):
+        """Applies a standardized executive top-level title to a figure canvas."""
+        fig.suptitle(
+            title,
+            fontsize = fontsize,
+            fontweight = 'bold',
+            x = x,
+            ha = 'left',
+            y = y,
+        )
+
 
     def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
@@ -96,7 +114,7 @@ class AirlineVisualizer:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (12, 5))
 
         # Overall Figure Title
-        fig.suptitle("Aircraft Registration Mapping Coverage Audit", fontsize = 14, fontweight = 'bold', y = 0.95)
+        self._setup_figure_header(fig, "Aircraft Registration Mapping Coverage Audit", y = 0.95)
 
         # Donut Chart
         ax1.pie(
@@ -158,7 +176,7 @@ class AirlineVisualizer:
         fig, ax1 = plt.subplots(figsize=(10, 5))
 
         # Overall Figure Title
-        fig.suptitle("Live Fleet Altitude Distribution Audit", fontsize = 14, fontweight = 'bold', y = 0.95)
+        self._setup_figure_header(fig, "Live Fleet Altitude Distribution Audit", y = 0.95)
 
         # Primary Axis: Histogram (Counts)
         ax1.hist(
@@ -263,14 +281,8 @@ class AirlineVisualizer:
         )
 
         # Titles and Labels
-        fig.suptitle(
-            f"Top {top_n} Active Airlines by Flight Count",
-            fontsize = 14,
-            fontweight = 'bold',
-            x = 0.5,
-            ha = 'center',
-            y = 0.98
-        )
+        self._setup_figure_header(fig, f"Top {top_n} Active Airlines by Flight Count", x = 0.5, y = 0.98)
+
         # ax.set_title(
         #   f"Key Insight: {top_airline_name} leads operating volume with {formatted_share} total market share in active telemetry",
         #    fontsize = 10,
@@ -374,14 +386,7 @@ class AirlineVisualizer:
             axes = [axes]
 
         # Executive Header Alignment
-        fig.suptitle(
-            f"Top {top_n} Airlines Market Share (%) Across Target Hub Airports",
-            fontsize = 14,
-            fontweight = 'bold',
-            x = 0.04,
-            ha = 'left',
-            y = 0.98
-        )
+        self._setup_figure_header(fig, f"Top {top_n} Airlines Market Share (%) Across Target Hub Airports", x = 0.04, y = 0.98)
 
         # Plot: Loop through each hub subplot axis and render horizontal bar charts
         for ax, hub in zip(axes, hubs):
@@ -500,14 +505,7 @@ class AirlineVisualizer:
         if len(hubs) == 1:
             axes = [axes]
 
-        fig.suptitle(
-            "Airline Market Share Concentration Across Target Hubs",
-            fontsize = 14,
-            fontweight = 'bold',
-            x = 0.04,
-            ha = 'left',
-            y = 0.98
-        )
+        self._setup_figure_header(fig, "Airline Market Share Concentration Across Target Hubs")
 
         # Sequential blue shades to differentiate secondary carriers (Airlines 2-4)
         SECONDARY_BLUE_GRADIENT = ["#2b5c8f", "#4f7bb0", "#7ba3cd"]
@@ -657,14 +655,8 @@ class AirlineVisualizer:
         )
 
         # Titles & Labels
-        fig.suptitle(
-            "Hub Consolidation Index: Home Carrier Market Dominance",
-            fontsize = 13,
-            fontweight = 'bold',
-            x = 0.04,
-            ha = 'left',
-            y = 0.98
-        )
+        self._setup_figure_header(fig, "Hub Consolidation Index: Home Carrier Market Dominance")
+
         ax.set_yticks(y_pos)
         ax.set_yticklabels(
             [f"Hub: {row['hub']}\n({row['home_carrier']})" for _, row in summary_df.iterrows()],
