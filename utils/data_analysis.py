@@ -313,27 +313,50 @@ class AirlineVisualizer:
 
     def plot_top_hub_airlines(self, df: pd.DataFrame, airport_col: str = 'hub_airport', airline_col: str = 'airline_name', top_n: int = 5, filename: str = "top_hub_airlines.png", data_as_of: str = None) -> Path:
         """
-        Plots top active airlines per target airport hub from schedule data.
+        Plots side-by-side horizontal bar charts comparing airline market share (%) across target hub airports.
         """
         if df.empty or airline_col not in df.columns or airport_col not in df.columns:
             print("Warning: Missing required columns for hub airline plot.")
             return None
 
+        # Filter out unmapped/null airlines
+        valid_df = df[df[airline_col].notna()].copy()
+
+        if valid_df.empty:
+            print("Warning: No valid airline records available. Skipping plot.")
+            return None
+
         # Group by airport and airline to extract top N carriers per hub
         grouped = (
-            df.groupby([airport_col, airline_col])
+            valid_df.groupby([airport_col, airline_col])
             .size()
             .reset_index(name='flight_count')
         )
 
+        # Calculate total flight volume per hub for normalized market share calculation
+        hub_totals = (
+            grouped.groupby(airport_col)["flight_count"]
+            .sum()
+            .to_dict()
+        )
+        grouped['market_share_pct'] = grouped.apply(
+            lambda row: (row["flight_count"] / hub_totals[row[airport_col]]) * 100,
+            axis = 1
+        )
+
+
         # Filtering: Rank airlines per hub and keep only the Top N for each airport
         top_per_hub = (
-            grouped.sort_values([airport_col, 'flight_count'], ascending = [True, False])
+            grouped.sort_values([airport_col, 'market_share_pct'], ascending = [True, False])
             .groupby(airport_col)
             .head(top_n)
         )
 
         hubs = top_per_hub[airport_col].unique()
+
+        if len(hubs) == 0:
+            print("Warning: No hub data avqailable to plot.")
+            return None
 
         # Create Fig
         fig, axes = plt.subplots(1, len(hubs), figsize = (5 * len(hubs), 5), sharey = False)
@@ -342,37 +365,102 @@ class AirlineVisualizer:
         if len(hubs) == 1:
             axes = [axes]
 
+        # Executive Header Alignment
+        fig.suptitle(
+            f"Top {top_n} Airlines Market Share (%) Across Target Hub Airports",
+            fontsize = 14,
+            fontweight = 'bold',
+            x = 0.04,
+            ha = 'left',
+            y = 0.98
+        )
+
         # Plot: Loop through each hub subplot axis and render horizontal bar charts
         for ax, hub in zip(axes, hubs):
             # Filter dataset to current hub and reverse rows so highest values plot at top
             hub_data = top_per_hub[top_per_hub[airport_col] == hub].iloc[::-1]
 
-            # Render horizontal bar chart
-            bars = ax.barh(hub_data[airline_col], hub_data['flight_count'], color = PALETTE['primary'], height = 0.6)
+            if hub_data.empty:
+                continue
+
+            max_share = hub_data['market_share_pct'].max()
+
+            # Highlight #1 Hub Leader in secondary color, remaining carriers in primary
+            bar_colors = [
+                (
+                    PALETTE['secondary']
+                    if share == max_share
+                    else PALETTE['primary']
+                )
+                for share in hub_data['market_share_pct']
+            ]
+
+            # Render Horizontal Bars (Plotting Market Share %)
+            bars = ax.barh(
+                hub_data[airline_col],
+                hub_data['market_share_pct'],
+                color = bar_colors,
+                height = 0.6,
+                edgecolor = 'None',
+                alpha = 0.92
+            )
 
             # Format plot axes, headers, and scale boundaries
-            ax.set_title(f"Top Airlines at {hub}", fontsize=11, fontweight='bold')
-            ax.set_xlabel("Scheduled Flights", fontsize=10)
+            ax.set_title(f"Hub: {hub}", fontsize=11, fontweight='bold', pad = 10)
+            ax.set_xlabel("Hub Market Share (%)", fontsize=9.5, labelpad = 6)
 
-            # Add 15% headroom on X-axis max limit
-            ax.set_xlim(0, max(hub_data['flight_count']) * 1.15 if not hub_data.empty else 1)
+            # Add 30% headroom on X-axis max limit
+            ax.set_xlim(0, max_share * 1.30)
 
-            # Bar Annotations: Add exact numerical values at the end of each bar
-            for bar in bars:
+            # Clean Spines
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color("#cccccc")
+            ax.spines['bottom'].set_color("#cccccc")
+
+            # Format X-axis tick labels as European percentage strings
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x:.0f}%".replace(".", ",")))
+
+            # Bar Annotations: Format raw flights + market share percentage
+            for bar, raw_count, share_val in zip(
+                bars, hub_data['flight_count'], hub_data['market_share_pct']
+            ):
                 width = bar.get_width()
+                is_leader = share_val == max_share
+                text_color = (
+                    PALETTE['secondary'] if is_leader else PALETTE['neutral']
+                )
+
+                formatted_val = self._format_eur_number(raw_count)
+                formatted_pct = f"{share_val:.1f}".replace(".", ",")
+
                 ax.annotate(
-                    f'{width:,}',
+                    f"{formatted_val} ({formatted_pct}",
                     xy = (width, bar.get_y() + bar.get_height() / 2),
-                    xytext = (4, 0),
+                    xytext = (6, 0),
                     textcoords = 'offset points',
                     ha = 'left',
                     va = 'center',
-                    fontsize = 9,
-                    fontweight = 'bold',
-                    color = PALETTE['neutral']
+                    fontsize = 8.5,
+                    fontweight = 'bold' if is_leader else 'normal',
+                    color = text_color
                 )
 
+        # Bottom Callout Subtitle
+        fig.text(
+            x = 0.04,
+            y = 0.02,
+            s = "Note: Operational volume normalized as percentage share of total scheduled flights per target hub.",
+            fontsize = 9,
+            fontstyle = 'italic',
+            color = '#555555',
+            ha = 'left',
+            va = 'bottom'
+        )
+
         plt.tight_layout()
+        fig.subplots_adjust(top = 0.86, bottom = 0.15)
+
         return self._save_fig(fig, filename, subfolder="airlines", data_as_of=data_as_of)
 
 
