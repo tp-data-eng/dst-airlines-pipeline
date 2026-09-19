@@ -205,6 +205,14 @@ To validate data enrichment success and audit warehouse health, the pipeline inc
 
 ---
 
+#### Fleet Data Resolution & Quality Audit
+* **Method:** `plot_fleet_coverage_audit()`
+* **Trigger:** `utils/run_visuals.py`
+* **Artifact:** `docs/figures/fleet_coverage_audit.png`
+* **Purpose:** Two-panel visual audit tracking total enriched-to-unknown model ratios and top resolved commercial airframe types.
+
+![Fleet Data Quality Overview](docs/figures/fleet_coverage_audit.png)
+
 ---
 
 ## Future Enhancement

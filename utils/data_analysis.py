@@ -25,6 +25,9 @@ class AirlineVisualizer:
         # Generate  timestamp string at class initialization
         self.timestamp = datetime.now().strftime("%Y%m%d-%H%M")
 
+    # =========================================================================
+    # HELPER UTILITIES
+
     def _save_fig(self, fig: plt.Figure, filename: str, subfolder: str = "", data_as_of: str | None = None) -> Path:
         """Helper to safely save figures into target subfolders with timestamps
          and close figures to prevent memory leaks."""
@@ -103,6 +106,8 @@ class AirlineVisualizer:
         """Formats float values as European percentage strings (e.g. 41.4 -> '41,4%')."""
         return f"{val:.{decimals}f}%".replace(".", ",")
 
+    # =========================================================================
+    # VISUALIZATION METHODS
 
     def plot_registration_coverage(self, df: pd.DataFrame, filename: str = "registration_coverage.png", data_as_of: str | None = None) -> Path:
         """Plot donut + bar chart of mapped vs UNKNOWN_REG counts."""
@@ -714,7 +719,14 @@ class AirlineVisualizer:
         return self._save_fig(fig, filename, subfolder = 'airlines', data_as_of = data_as_of)
 
 
-    def plot_fleet_coverage_audit(self, df: pd.DataFrame, model_col: str = 'model', top_n: int = 10, filename: str = "fleet_coverage_audit.png", data_as_of: str | None = None) -> Path:
+    def plot_fleet_coverage_audit(
+            self,
+            df: pd.DataFrame,
+            model_col: str = 'model',
+            top_n: int = 10,
+            filename: str = "fleet_coverage_audit.png",
+            data_as_of: str | None = None,
+    ) -> Path:
         """Generates a 2-panel visual auditing data enrichment health:
         1. Known vs UNKNOWN coverage ratio
         2. Top populated aircraft models (excluding UNKNOWN)
@@ -732,31 +744,37 @@ class AirlineVisualizer:
         known_count = total_count - unknown_count
 
         known_pct = (known_count / total_count * 100) if total_count > 0 else 0
-        unknown_pct = (unknown_count / total_count * 100) if total_count > 0 else 0
 
         # Extract Top N known models
         known_series = series[series != 'UNKNOWN_MODEL']
         top_known = known_series.value_counts().head(top_n).iloc[::-1]
 
         # Figure layout: Left (Coverage Ratio), Right (Top Known Models)
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (14, 5), gridspec_kw = {'width_ratios': [1, 2]})
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (14, 5.5), gridspec_kw = {'width_ratios': [1, 2]})
+
+        # Top-Level Title
+        self._setup_figure_header(fig, "Aircraft Fleet Model Resolution & Data Quality Audit")
 
         # Panel 1: Overall Data Quality Ratio
         categories = ['Enriched\n(Known)', 'Unmapped\n(UNKNOWN)']
         values = [known_count, unknown_count]
         colors = [PALETTE['primary'], PALETTE['secondary']]
 
-        bars1 = ax1.bar(categories, values, color = colors, width = 0.5)
-        ax1.set_title(f"Fleet Data Quality Overview\n({known_pct:.1f}% Enriched)", fontsize = 11, fontweight = 'bold')
+        bars1 = ax1.bar(categories, values, color = colors, width = 0.45)
+        ax1.set_title(f"Fleet Data Quality Overview\n({self._format_eur_pct(known_pct)} Enriched)", fontsize = 11, fontweight = 'bold', pad = 10)
         ax1.set_ylabel("Aircraft Hex Records", fontsize = 10)
-        ax1.set_ylim(0, max(values) * 1.15 if values else 1)
+        ax1.set_ylim(0, max(values) * 1.18 if values else 1)
+
+        self._apply_clean_spines(ax1)
+        ax1.xaxis.grid(False)           # Remove vertical grid lines
+        ax1.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
 
         for bar in bars1:
             yval = bar.get_height()
             ax1.annotate(
-                f'self._format_eur_number(yval)',
+                self._format_eur_number(yval),
                 xy = (bar.get_x() + bar.get_width() / 2, yval),
-                xytext = (0, 3),
+                xytext = (0, 4),
                 textcoords = 'offset points',
                 ha = 'center',
                 va = 'bottom',
@@ -766,17 +784,31 @@ class AirlineVisualizer:
 
         # Panel 2: Top Populated Aircraft Types
         if not top_known.empty:
-            bars2 = ax2.barh(top_known.index, top_known.values, color = PALETTE['accent'], height = 0.6)
-            ax2.set_title(f"Top {len(top_known)} Resolved Aircraft Models", fontsize = 11, fontweight = 'bold')
+            bars2 = ax2.barh(
+                top_known.index,
+                top_known.values,
+                color = PALETTE['accent'],
+                height = 0.6
+            )
+            ax2.set_title(
+                f"Top {len(top_known)} Resolved Aircraft Models",
+                fontsize = 11,
+                fontweight = 'bold',
+                pad = 10
+            )
             ax2.set_xlabel("Airframe Count", fontsize = 10)
-            ax2.set_xlim(0, max(top_known.values) * 1.15)
+            ax2.set_xlim(0, max(top_known.values) * 1.22)
+
+            self._apply_clean_spines(ax2)
+            ax2.yaxis.grid(False)           # Remove horizontal grid lines
+            ax2.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: self._format_eur_number(x)))
 
             for bar in bars2:
                 width = bar.get_width()
                 ax2.annotate(
-                    f'self._format_eur_number(width)',
+                    self._format_eur_number(width),
                     xy = (width, bar.get_y() + bar.get_height() / 2),
-                    xytext = (5, 0),
+                    xytext = (6, 0),
                     textcoords = 'offset points',
                     ha = 'left',
                     va = 'center',
@@ -785,8 +817,18 @@ class AirlineVisualizer:
                 )
 
         else:
-            ax2.text(0.5, 0.5, "No known models found yet", ha = 'center', va = 'center', transform = ax2.transAxes)
+            self._apply_clean_spines(ax2)
+            ax2.text(
+                0.5,
+                0.5,
+                "No known models found yet",
+                ha = 'center',
+                va = 'center',
+                transform = ax2.transAxes
+            )
 
         plt.tight_layout()
+        fig.subplots_adjust(top = 0.80, bottom = 0.14, wspace = 0.48)
+
         return self._save_fig(fig, filename, subfolder="coverage", data_as_of=data_as_of)
 
