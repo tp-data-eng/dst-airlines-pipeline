@@ -11,7 +11,7 @@ PALETTE = {
     'neutral': '#666666'     # Gray
 }
 
-class InteractiveAirlineVisualizer:
+class InteractiveAirlineVisualize:
     """Generates interactive Plotly figures for Streamlit dashboards."""
 
     @staticmethod
