@@ -11,3 +11,6 @@
 *.json
 !samples/flights_sample.json
 *.csv
+
+# Folders
+outputs/
