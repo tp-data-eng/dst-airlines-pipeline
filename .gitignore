@@ -1,23 +1,33 @@
-﻿# Byte-code / Python Caches
+﻿# Python Byte-code & Caches
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Local Databases & Archives
+# Local Obsidian Vault Settings
+.obsidian/
+
+# Local Databases & SQLite Files
 *.db
 *.sqlite
 *.sqlite3
 database/*.db
 
-# PowerBI, PowerPoint, and Local Office Assets
+# PowerBI & Presentation Files
 *.pbix
 *.pptx
 
-# Environment Secrets & Local Virtual Environment
+# Local Secrets & Virtual Environments
 .env
 venv/
 .venv/
 
-# Notebook Caches & Temporary Artifacts
-.ipynb_checkpoints/
+# Temporary / Scratch Notebooks
+notebooks/
+archive/
+data/
+database/
+dashboard/
+data_extraction/
+outputs/
+scripts/
