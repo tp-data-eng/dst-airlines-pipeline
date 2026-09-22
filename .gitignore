@@ -31,3 +31,28 @@ dashboard/
 data_extraction/
 outputs/
 scripts/
+
+# Drafts, Logs, and Scratchpads
+README_DRAFT.md
+To-Dos.md
+img.png
+docs/map_preview.png
+docs/DOCKER_LOG.md
+docs/Good_To_Know.md
+
+# Experimental/Test Scripts & Notebooks
+etl_pipeline/pyspark_pipeline.py
+utils/TEST.py
+utils/Test_Visual_Display.ipynb
+utils/README.md
+
+# Draft Deliverables
+deliverables/ETL_Pipeline.md
+deliverables/Master_Glossary.md
+deliverables/Report_3.md
+deliverables/pipeline_audit_flowchart.md
+
+# Container & Deployment Configs (if uncommitted)
+Dockerfile
+docker-compose.yml
+.dockerignore
