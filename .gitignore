@@ -26,8 +26,7 @@ venv/
 notebooks/
 archive/
 data/
-database/
-dashboard/
+dashboard_powerbi/
 data_extraction/
 outputs/
 scripts/
