@@ -1,16 +1,23 @@
-﻿#*.env
-#config.py
-#*.json
-#*.csv
-#-----------
-#-----------
-# Sensitive credentials
+﻿# Byte-code / Python Caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Databases & Archives
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# PowerBI, PowerPoint, and Local Office Assets
+*.pbix
+*.pptx
+
+# Environment Secrets & Local Virtual Environment
 .env
+venv/
+.venv/
 
-# Data files
-*.json
-!samples/flights_sample.json
-*.csv
-
-# Folders
-outputs/
+# Notebook Caches & Temporary Artifacts
+.ipynb_checkpoints/
