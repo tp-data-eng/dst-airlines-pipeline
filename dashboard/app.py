@@ -44,9 +44,31 @@ def get_distinct_active_airlines_count() -> int:
             return int(result) if result else 0
     except Exception as e:
         st.error(f"Error quering active airlines: {e}")
+        return 0
+
+@st.cache_data(ttl=300)
+def get_total_flights_count() -> int:
+    """Queries warehouse for total records in fact_flight."""
+    if not DB_PATH.exists():
+        return 0
+
+    query = text(
+        "SELECT COUNT (*) FROM fact_flight;"
+    )
+
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query).scalar()
+            return int(result) if result else 0
+    except Exception as e:
+        st.error(f"Error querying total flights: {e}")
+        return 0
+
+
 
 # Fetch dynamic count
 active_carrier_count = get_distinct_active_airlines_count()
+total_flights_count = get_total_flights_count()
 
 # -----------------------------------------------------------------------------
 # SIDEBAR FILTERS
@@ -55,12 +77,16 @@ st.sidebar.title("✈️ Filter Operations")
 # Base Example
 selected_hub = st.sidebar.selectbox(
     "Select Target Hub",
-    options = ["All Hubs", "EGLL", "LTFM", "LFPG"],
+    options = ["All Hubs (EGLL / LTFM / LFPG)", "EGLL (London Heathrow)", "LTFM (Istanbul)", "LFPG (Paris CDG)"],
     index = 0
 )
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Data Source: SQLite Warehouse ('airlines_warehouse.db')")
+
+if DB_PATH.exists():
+    st.sidebar.success("🟢 Warehouse Online (`airlines_warehouse.db`)")
+else:
+    st.sidebar.error("🔴 Warehouse Offline (`airlines_warehouse.db` not found)")
 
 # -----------------------------------------------------------------------------
 # MAIN DASHBOARD
@@ -78,10 +104,12 @@ with col2:
         value = f"{active_carrier_count}"
     )
 with col3:
-    st.metric(label = "Database Status", value = "Connected" if DB_PATH.exists() else "Offline"
+    st.metric(
+        label = "Total Flights",
+        value = f"{total_flights_count:,}"
     )
 with col4:
-    st.metric(label = "Release", value = "v1.2.0")
+    st.metric(label = "Version Baseline", value = "v1.2.0")
 
 st.divider()
 
